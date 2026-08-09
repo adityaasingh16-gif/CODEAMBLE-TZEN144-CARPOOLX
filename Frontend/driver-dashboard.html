@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CarpoolX - Driver Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(180deg, #FFFFFF 0%, #FFF5F2 100%);
+      --card-bg: #FFFFFF;
+      --primary-peach: #FF6B4A;
+      --primary-peach-hover: #E85535;
+      --soft-peach: #FFF2EE;
+      --accent-peach: #FFD2C4;
+      --text-dark: #231E1C;
+      --text-muted: #7C706B;
+      --border-color: #F4ECE8;
+      --shadow-soft: 0 12px 30px -8px rgba(255, 107, 74, 0.12), 0 4px 12px rgba(0,0,0,0.03);
+      --radius: 20px;
+      --danger: #EF4444;
+      --success: #10B981;
+      --warn: #F59E0B;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+
+    body {
+      background: var(--bg-gradient);
+      color: var(--text-dark);
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 100%;
+      min-height: 100vh;
+      background: #FFFFFF;
+      border-radius: 32px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.07);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border-color);
+    }
+
+    .header {
+      padding: 20px 20px 16px;
+      background: #FFFFFF;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand-title { font-size: 1.2rem; font-weight: 800; color: var(--primary-peach); }
+
+    .icon-btn {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: var(--soft-peach); color: var(--primary-peach);
+      border: none; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 0.95rem;
+    }
+
+    .content {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-height: 78vh;
+      overflow-y: auto;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .driver-profile-card { display: flex; align-items: center; gap: 14px; }
+    .driver-avatar {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: var(--soft-peach); color: var(--primary-peach);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; font-weight: 800; flex-shrink: 0;
+    }
+    .greeting-title { font-size: 1.05rem; font-weight: 800; }
+    .rating-text { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+
+    .verification-pill {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-top: 6px;
+    }
+    .verification-pill.approved { background: #ECFDF5; color: var(--success); }
+    .verification-pill.pending { background: #FFFBEB; color: var(--warn); }
+    .verification-pill.rejected { background: #FEF2F2; color: var(--danger); }
+    .verification-pill.unverified { background: var(--soft-peach); color: var(--text-muted); }
+
+    /* --- Availability toggle ("Go Online" / "Go Offline") --------------
+       Flips isAvailable on the driver's account so the nearest-driver
+       matching algorithm (Backend/utils/nearestDriverMatcher.js) can find
+       this driver when a rider is within the 400m search radius. */
+    .availability-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .availability-status { display: flex; align-items: center; gap: 10px; }
+    .availability-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--text-muted);
+      flex-shrink: 0;
+      transition: background 0.2s ease;
+    }
+    .availability-card.online .availability-dot { background: var(--success); }
+    .availability-label { font-size: 0.85rem; font-weight: 700; }
+    .availability-sublabel { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+
+    .availability-switch {
+      position: relative;
+      width: 46px; height: 26px;
+      border-radius: 999px;
+      background: var(--border-color);
+      border: none;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.2s ease;
+    }
+    .availability-switch::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+      transition: transform 0.2s ease;
+    }
+    .availability-switch.online { background: var(--success); }
+    .availability-switch.online::after { transform: translateX(20px); }
+    .availability-switch:disabled { opacity: 0.6; cursor: wait; }
+
+    .section-title {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--text-dark);
+      margin-bottom: 2px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .btn-primary {
+      background: var(--primary-peach);
+      color: #fff;
+      border: none;
+      padding: 14px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      width: 100%;
+      text-align: center;
+    }
+    .btn-primary:hover { background: var(--primary-peach-hover); }
+    .btn-primary:disabled { background: #E8C9BC; cursor: not-allowed; }
+
+    .btn-small {
+      flex: 1;
+      padding: 10px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-small.start { background: var(--primary-peach); color: #fff; }
+    .btn-small.complete { background: var(--success); color: #fff; }
+    .btn-small.cancel { background: var(--soft-peach); color: var(--danger); border: 1px solid var(--border-color); }
+
+    .ride-card { border: 1px solid var(--border-color); border-radius: 16px; padding: 14px; }
+    .ride-card + .ride-card { margin-top: 10px; }
+    .ride-route { font-size: 0.85rem; font-weight: 700; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+    .ride-route .point { display: flex; align-items: center; gap: 8px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot.pickup { background: var(--success); }
+    .dot.drop { background: var(--primary-peach); }
+
+    .ride-meta { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 10px; flex-wrap: wrap; gap: 6px; }
+    .status-badge { font-size: 0.68rem; font-weight: 800; padding: 3px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .status-badge.scheduled { background: #EFF6FF; color: #2563EB; }
+    .status-badge.in-progress { background: #FFFBEB; color: var(--warn); }
+    .status-badge.completed { background: #ECFDF5; color: var(--success); }
+    .status-badge.cancelled { background: #FEF2F2; color: var(--danger); }
+
+    .passenger-row { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; padding: 6px 0; border-top: 1px dashed var(--border-color); }
+    .passenger-row:first-of-type { margin-top: 6px; }
+
+    .ride-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+    .empty-state { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 16px 4px; line-height: 1.5; }
+    .loading-state { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 20px 4px; }
+
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(35, 30, 28, 0.45);
+      display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-box { background: var(--card-bg); width: 100%; max-width: 380px; border-radius: 20px; padding: 20px; max-height: 85vh; overflow-y: auto; }
+    .modal-title { font-size: 1.05rem; font-weight: 800; margin-bottom: 14px; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; }
+    .form-group input {
+      width: 100%; padding: 11px; border: 1px solid var(--border-color);
+      background: #FFFAF7; border-radius: 10px; outline: none; font-size: 0.85rem;
+    }
+    .form-row { display: flex; gap: 10px; }
+    .form-row .form-group { flex: 1; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 6px; }
+    .modal-btn { flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
+    .modal-btn.cancel { background: var(--soft-peach); color: var(--text-dark); }
+    .modal-btn.confirm { background: var(--primary-peach); color: #fff; }
+    .form-error { font-size: 0.78rem; color: var(--danger); margin-top: 4px; min-height: 1em; }
+
+    .bottom-nav {
+      display: flex; justify-content: space-around; align-items: center;
+      border-top: 1px solid var(--border-color); padding: 12px 0;
+    }
+    .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); font-size: 0.72rem; font-weight: 700; background: none; border: none; cursor: pointer; }
+    .nav-item i { font-size: 1.1rem; }
+    .nav-item.active { color: var(--primary-peach); }
+
+    .gate-card { text-align: center; padding: 30px 20px; }
+    .gate-card i { font-size: 2.2rem; color: var(--primary-peach); margin-bottom: 12px; }
+    .gate-card p { color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <div class="header">
+      <div class="brand-title">CarpoolX Driver</div>
+      <button class="icon-btn" onclick="window.location.href='index final 1.html'" title="Back to passenger app">
+        <i class="fa-solid fa-house"></i>
+      </button>
+    </div>
+
+    <!-- Shown if not logged in or not registered as a driver -->
+    <div class="content" id="gateView" style="display:none;">
+      <div class="card gate-card">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <p id="gateMessage">You need to log in to access the driver dashboard.</p>
+        <button class="btn-primary" id="gateActionBtn">Log In</button>
+      </div>
+    </div>
+
+    <!-- Real driver dashboard -->
+    <div class="content" id="dashboardView" style="display:none;">
+      <div class="card driver-profile-card">
+        <div class="driver-avatar" id="driverInitials">--</div>
+        <div>
+          <div class="greeting-title" id="driverName">Loading…</div>
+          <div class="rating-text" id="driverRating">-- rating • -- reviews</div>
+          <span class="verification-pill" id="verificationPill">Checking status…</span>
+        </div>
+      </div>
+
+      <div class="card availability-card" id="availabilityCard">
+        <div class="availability-status">
+          <div class="availability-dot" id="availabilityDot"></div>
+          <div>
+            <div class="availability-label" id="availabilityLabel">Offline</div>
+            <div class="availability-sublabel" id="availabilitySublabel">Go online so nearby riders can find you</div>
+          </div>
+        </div>
+        <button class="availability-switch" id="availabilitySwitch" onclick="toggleAvailability()" title="Go online / offline"></button>
+      </div>
+
+      <button class="btn-primary" onclick="openPostRideModal()">
+        <i class="fa-solid fa-circle-plus"></i>&nbsp; Post a New Ride
+      </button>
+
+      <div class="card">
+        <div class="section-title">
+          <span>My Posted Rides</span>
+          <span id="rideCount" style="font-size:0.75rem; color:var(--text-muted); font-weight:600;"></span>
+        </div>
+        <div id="myRidesList" style="margin-top:10px;">
+          <div class="loading-state">Loading your posted rides…</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="bottom-nav">
+      <button class="nav-item active"><i class="fa-solid fa-gauge"></i><span>Dashboard</span></button>
+      <button class="nav-item" onclick="window.location.href='history.html'"><i class="fa-solid fa-clock-rotate-left"></i><span>History</span></button>
+      <button class="nav-item" onclick="window.location.href='vehicle-details.html'"><i class="fa-solid fa-id-card"></i><span>Vehicle</span></button>
+      <button class="nav-item" onclick="window.location.href='profile2.html'"><i class="fa-solid fa-user"></i><span>Profile</span></button>
+    </nav>
+  </div>
+
+  <!-- Post a Ride modal - same real booking flow used on the passenger
+       dashboard (index final 1.html): geocodes the two addresses, then
+       creates a real ride via apiCreateRide. -->
+  <div class="modal-overlay" id="postRideModal">
+    <div class="modal-box">
+      <div class="modal-title">Post a Ride</div>
+      <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:12px;">This creates a real ride passengers can search for and book.</p>
+      <div class="form-group">
+        <label>Starting Point</label>
+        <input type="text" id="postRideOrigin" placeholder="e.g. Pune Station, Pune">
+      </div>
+      <div class="form-group">
+        <label>Destination</label>
+        <input type="text" id="postRideDestination" placeholder="e.g. Bandra Kurla Complex, Mumbai">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Seats</label>
+          <input type="number" id="postRideSeats" min="1" max="8" placeholder="e.g. 3">
+        </div>
+        <div class="form-group">
+          <label>Fare per seat (₹)</label>
+          <input type="number" id="postRideFare" min="1" placeholder="e.g. 400">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Departure</label>
+        <input type="datetime-local" id="postRideDeparture">
+      </div>
+      <p class="form-error" id="postRideError"></p>
+      <div class="modal-actions">
+        <button class="modal-btn cancel" onclick="closePostRideModal()">Cancel</button>
+        <button class="modal-btn confirm" id="postRideSubmitBtn" onclick="submitPostRide()">Post Ride</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="api-client.js"></script>
+  <script>
+    let myRides = [];
+
+    function initials(name) {
+      if (!name) return '--';
+      return name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() || '').join('');
+    }
+
+    function formatDateTime(value) {
+      if (!value) return 'Not set';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return 'Not set';
+      return date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    }
+
+    function showGate(message, actionLabel, actionFn) {
+      document.getElementById('gateView').style.display = 'flex';
+      document.getElementById('dashboardView').style.display = 'none';
+      document.getElementById('gateMessage').innerText = message;
+      const btn = document.getElementById('gateActionBtn');
+      btn.innerText = actionLabel;
+      btn.onclick = actionFn;
+    }
+
+    async function init() {
+      if (!localStorage.getItem('token')) {
+        showGate('You need to log in to access the driver dashboard.', 'Log In', () => {
+          window.location.href = 'login.html';
+        });
+        return;
+      }
+
+      let profile;
+      try {
+        profile = await apiGetProfile();
+      } catch (error) {
+        showGate(error.message || 'Could not load your profile.', 'Back to Login', () => {
+          window.location.href = 'login.html';
+        });
+        return;
+      }
+
+      if (!profile.isDriver) {
+        showGate(
+          'This account is registered as a passenger. Sign up as a driver (with vehicle details) to post rides and manage trips.',
+          'Back to Home',
+          () => { window.location.href = 'index final 1.html'; }
+        );
+        return;
+      }
+
+      document.getElementById('gateView').style.display = 'none';
+      document.getElementById('dashboardView').style.display = 'flex';
+      renderDriverProfile(profile);
+      renderAvailability(Boolean(profile.isAvailable));
+      loadMyRides();
+    }
+
+    function renderDriverProfile(profile) {
+      document.getElementById('driverInitials').innerText = initials(profile.name);
+      document.getElementById('driverName').innerText = profile.name || 'Driver';
+      const rating = Number(profile.rating) || 0;
+      const numReviews = Number(profile.numReviews) || 0;
+      document.getElementById('driverRating').innerText =
+        numReviews > 0 ? `${rating.toFixed(1)} rating • ${numReviews} reviews` : 'No ratings yet';
+
+      const pill = document.getElementById('verificationPill');
+      const status = profile.verificationStatus || 'pending';
+      const labels = {
+        approved: 'Verified Driver',
+        pending: 'Verification Pending',
+        rejected: 'Verification Rejected',
+      };
+      pill.innerText = labels[status] || 'Verification Pending';
+      pill.className = `verification-pill ${['approved', 'pending', 'rejected'].includes(status) ? status : 'unverified'}`;
+    }
+
+    // --- Availability toggle ("Go Online" / "Go Offline") ------------------
+    // Flips isAvailable on this driver's account. Only online drivers with a
+    // recent location are considered by the nearest-driver matching
+    // algorithm (Backend/utils/nearestDriverMatcher.js), which riders use to
+    // find the closest available driver within a 400m radius.
+    let isDriverAvailable = false;
+
+    function renderAvailability(online) {
+      isDriverAvailable = online;
+      document.getElementById('availabilityCard').classList.toggle('online', online);
+      document.getElementById('availabilitySwitch').classList.toggle('online', online);
+      document.getElementById('availabilityLabel').innerText = online ? 'Online' : 'Offline';
+      document.getElementById('availabilitySublabel').innerText = online
+        ? 'Riders nearby can be matched to you'
+        : 'Go online so nearby riders can find you';
+    }
+
+    function getCurrentPosition() {
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) { resolve(null); return; }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve([pos.coords.longitude, pos.coords.latitude]),
+          () => resolve(null), // permission denied / unavailable - still allow going online
+          { enableHighAccuracy: true, timeout: 8000 },
+        );
+      });
+    }
+
+    async function toggleAvailability() {
+      const switchBtn = document.getElementById('availabilitySwitch');
+      const nextState = !isDriverAvailable;
+      switchBtn.disabled = true;
+      try {
+        const coordinates = nextState ? await getCurrentPosition() : null;
+        const payload = { isAvailable: nextState };
+        if (coordinates) payload.coordinates = coordinates;
+        const result = await apiSetDriverAvailability(payload);
+        renderAvailability(Boolean(result.isAvailable));
+      } catch (error) {
+        alert(error.message || 'Could not update your availability. Please try again.');
+      } finally {
+        switchBtn.disabled = false;
+      }
+    }
+
+    async function loadMyRides() {
+      const list = document.getElementById('myRidesList');
+      try {
+        myRides = await apiGetMyRides();
+        renderMyRides();
+      } catch (error) {
+        list.innerHTML = `<div class="empty-state">${error.message || 'Could not load your posted rides.'}</div>`;
+      }
+    }
+
+    function renderMyRides() {
+      const list = document.getElementById('myRidesList');
+      const countEl = document.getElementById('rideCount');
+      countEl.innerText = myRides.length ? `${myRides.length} ride${myRides.length === 1 ? '' : 's'}` : '';
+
+      if (!myRides.length) {
+        list.innerHTML = `<div class="empty-state">You haven't posted any rides yet. Tap "Post a New Ride" above to get started.</div>`;
+        return;
+      }
+
+      list.innerHTML = myRides.map((ride) => {
+        const passengers = Array.isArray(ride.passengers) ? ride.passengers : [];
+        const passengerRows = passengers.length
+          ? passengers.map((p) => `
+              <div class="passenger-row">
+                <i class="fa-solid fa-user" style="color:var(--text-muted);"></i>
+                <span>${p.user?.name || 'Passenger'}</span>
+                <span style="margin-left:auto; color:var(--text-muted);">${p.seatsBooked || 1} seat${(p.seatsBooked || 1) > 1 ? 's' : ''}</span>
+              </div>`).join('')
+          : '';
+
+        let actions = '';
+        if (ride.status === 'scheduled') {
+          actions = `
+            <div class="ride-actions">
+              <button class="btn-small start" onclick="changeRideStatus('${ride._id}', 'in-progress')">Start Trip</button>
+              <button class="btn-small cancel" onclick="changeRideStatus('${ride._id}', 'cancelled')">Cancel</button>
+            </div>`;
+        } else if (ride.status === 'in-progress') {
+          actions = `
+            <div class="ride-actions">
+              <button class="btn-small complete" onclick="changeRideStatus('${ride._id}', 'completed')">Complete Trip</button>
+            </div>`;
+        }
+
+        return `
+          <div class="ride-card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+              <span class="status-badge ${ride.status}">${(ride.status || '').replace('-', ' ')}</span>
+              <span style="font-size:0.75rem; color:var(--text-muted);">${formatDateTime(ride.departureTime)}</span>
+            </div>
+            <div class="ride-route">
+              <div class="point"><span class="dot pickup"></span><span>${ride.from?.address || 'Pickup'}</span></div>
+              <div class="point"><span class="dot drop"></span><span>${ride.to?.address || 'Drop-off'}</span></div>
+            </div>
+            <div class="ride-meta">
+              <span>${ride.availableSeats ?? 0}/${ride.totalSeats ?? 0} seats free</span>
+              <span>₹${Number(ride.pricePerSeat) || 0} / seat</span>
+            </div>
+            ${passengerRows}
+            ${actions}
+          </div>`;
+      }).join('');
+    }
+
+    async function changeRideStatus(rideId, status) {
+      const confirmations = {
+        'in-progress': 'Start this trip now?',
+        completed: 'Mark this trip as completed?',
+        cancelled: 'Cancel this ride? Passengers will be notified.',
+      };
+      if (confirmations[status] && !confirm(confirmations[status])) return;
+
+      try {
+        await apiUpdateRideStatus(rideId, status);
+        await loadMyRides();
+      } catch (error) {
+        alert(error.message || 'Could not update this ride.');
+      }
+    }
+
+    // --- Post a Ride modal (same real flow as index final 1.html) ----------
+    function openPostRideModal() {
+      document.getElementById('postRideError').innerText = '';
+      document.getElementById('postRideOrigin').value = '';
+      document.getElementById('postRideDestination').value = '';
+      document.getElementById('postRideSeats').value = '';
+      document.getElementById('postRideFare').value = '';
+      document.getElementById('postRideDeparture').value = '';
+      document.getElementById('postRideModal').classList.add('active');
+    }
+
+    function closePostRideModal() {
+      document.getElementById('postRideModal').classList.remove('active');
+    }
+
+    async function submitPostRide() {
+      const errorEl = document.getElementById('postRideError');
+      errorEl.innerText = '';
+
+      const originText = document.getElementById('postRideOrigin').value.trim();
+      const destText = document.getElementById('postRideDestination').value.trim();
+      const totalSeats = parseInt(document.getElementById('postRideSeats').value) || 0;
+      const baseFare = parseFloat(document.getElementById('postRideFare').value) || 0;
+      const departureTime = document.getElementById('postRideDeparture').value;
+
+      if (!originText || !destText || !departureTime || totalSeats < 1 || baseFare < 1) {
+        errorEl.innerText = 'Please fill in every field.';
+        return;
+      }
+
+      const submitBtn = document.getElementById('postRideSubmitBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'Posting…';
+
+      try {
+        const origin = await geocodeAddress(originText);
+        const destination = await geocodeAddress(destText);
+        const routeLineString = { type: 'LineString', coordinates: [origin.coordinates, destination.coordinates] };
+
+        await apiCreateRide({
+          from: origin,
+          to: destination,
+          routeLine: routeLineString,
+          departureTime: new Date(departureTime).toISOString(),
+          totalSeats,
+          pricePerSeat: baseFare,
+        });
+
+        closePostRideModal();
+        await loadMyRides();
+      } catch (error) {
+        errorEl.innerText = error.message || 'Could not post this ride.';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'Post Ride';
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

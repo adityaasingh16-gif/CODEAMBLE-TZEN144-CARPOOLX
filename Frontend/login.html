@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CarpoolX - Shared Mobility Platform</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #FAFAFA;
+            --surface-color: #FFFFFF;
+            --primary-peach: #FF8A65;
+            --primary-light: #FF8A6515;
+            --primary-hover: #F4511E;
+            --text-dark: #2C3E50;
+            --text-muted: #7F8C8D;
+            --border-color: #E0E0E0;
+            --error-color: #E53935;
+            --success-color: #43A047;
+            --shadow: 0 10px 30px rgba(255, 138, 101, 0.12);
+            --radius: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 0;
+        }
+
+        /* App Container */
+        .app-container {
+            width: 100%;
+            max-width: 100%;
+            min-height: 100vh;
+            justify-content: center;
+            display: flex;
+            flex-direction: column;
+            background: var(--surface-color);
+            border-radius: 0;
+            box-shadow: none;
+            padding: 0px;
+            position: relative;
+            overflow: hidden;
+            border: none;
+        }
+
+        .brand-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .brand-logo {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-peach);
+            letter-spacing: 1px;
+            display: inline-block;
+        }
+
+        .brand-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            background: var(--primary-light);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px auto;
+            color: var(--primary-peach);
+            font-size: 2.2rem;
+            border: 2px dashed var(--primary-peach);
+        }
+
+        /* Views management */
+        .view {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Form Controls */
+        .form-group {
+            margin-bottom: 18px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: var(--text-dark);
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-wrapper i.field-icon {
+            position: absolute;
+            left: 15px;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 15px;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: color 0.2s ease;
+        }
+
+        .toggle-password:hover {
+            color: var(--primary-peach);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px 12px 42px;
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.2s ease;
+            background: #FAFAFA;
+        }
+
+        .form-control.has-toggle {
+            padding-right: 42px;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-peach);
+            background: #FFF;
+            box-shadow: 0 0 0 3px rgba(255, 138, 101, 0.15);
+        }
+
+        /* Buttons */
+        .btn {
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-peach);
+            color: white;
+            box-shadow: 0 4px 12px rgba(255, 138, 101, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1.5px solid var(--primary-peach);
+            color: var(--primary-peach);
+            margin-top: 10px;
+        }
+
+        .btn-outline:hover {
+            background-color: var(--primary-light);
+        }
+
+        .btn-google {
+            background-color: #FFFFFF;
+            color: #555;
+            border: 1.5px solid var(--border-color);
+            margin-top: 12px;
+        }
+
+        .btn-google:hover {
+            background-color: #F5F5F5;
+        }
+
+        .link-text {
+            display: block;
+            text-align: right;
+            font-size: 0.8rem;
+            color: var(--primary-peach);
+            text-decoration: none;
+            margin-top: -10px;
+            margin-bottom: 18px;
+            font-weight: 500;
+        }
+
+        .link-text:hover {
+            text-decoration: underline;
+        }
+
+        /* Multi-Photo Grid */
+        .photo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        /* File Upload Inputs */
+        .file-upload-box {
+            border: 1.5px dashed var(--border-color);
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            background: #FAFAFA;
+            cursor: pointer;
+            transition: 0.2s;
+            position: relative;
+        }
+
+        .file-upload-box:hover {
+            border-color: var(--primary-peach);
+            background: var(--primary-light);
+        }
+
+        .file-upload-box.has-file {
+            border-color: var(--success-color);
+            background: #E8F5E9;
+        }
+
+        .file-upload-box input[type="file"] {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-info {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            word-break: break-all;
+        }
+
+        /* Terms Box */
+        .terms-box {
+            max-height: 220px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 15px;
+            background: #FAFAFA;
+            font-size: 0.82rem;
+            margin-bottom: 18px;
+        }
+
+        .terms-box ol {
+            padding-left: 18px;
+        }
+
+        .terms-box li {
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .radio-option {
+            flex: 1;
+            padding: 10px;
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .radio-option input {
+            display: none;
+        }
+
+        .radio-option.selected {
+            border-color: var(--primary-peach);
+            background-color: var(--primary-light);
+            color: var(--primary-peach);
+        }
+
+        /* Notifications & Error messages */
+        .status-msg {
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 15px;
+            display: none;
+            text-align: center;
+        }
+
+        .status-msg.error {
+            background-color: #FFEBEE;
+            color: var(--error-color);
+            border: 1px solid #FFCDD2;
+            display: block;
+        }
+
+        .status-msg.success {
+            background-color: #E8F5E9;
+            color: var(--success-color);
+            border: 1px solid #C8E6C9;
+            display: block;
+        }
+
+        .progress-bar {
+            height: 4px;
+            width: 100%;
+            background: #E0E0E0;
+            border-radius: 2px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-peach);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* Logged In Dashboard Card */
+        .dashboard-card {
+            text-align: center;
+            padding: 20px 10px;
+        }
+        .dashboard-card i {
+            font-size: 3.5rem;
+            color: var(--success-color);
+            margin-bottom: 15px;
+        }
+        .user-tag {
+            background: var(--primary-light);
+            color: var(--primary-peach);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="brand-header">
+        <div class="brand-logo"><i class="fa-solid fa-car-side"></i> CARPOOLX</div>
+        <div class="brand-subtitle">Smart Shared Rides, Lower Footprint</div>
+    </div>
+
+    <div id="statusAlert" class="status-msg"></div>
+
+    <!-- 1. LANDING CHOICE VIEW -->
+    <div id="view-landing" class="view active">
+        <div class="profile-avatar">
+            <i class="fa-solid fa-user"></i>
+        </div>
+        <button class="btn btn-primary" onclick="showView('view-login')">Login</button>
+        <button class="btn btn-outline" onclick="showView('view-register-type')">Create New Account</button>
+    </div>
+
+    <!-- 2. LOGIN VIEW -->
+    <div id="view-login" class="view">
+        <div class="profile-avatar">
+            <i class="fa-solid fa-user-check"></i>
+        </div>
+        <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-user field-icon"></i>
+                    <input type="text" id="loginUsername" class="form-control" placeholder="Enter Username or Email">
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-phone field-icon"></i>
+                    <input type="tel" id="loginMobile" inputmode="numeric" class="form-control" placeholder="Enter Mobile Number (Optional)" maxlength="13">
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-lock field-icon"></i>
+                    <input type="password" id="loginPassword" class="form-control has-toggle" placeholder="Enter Password" required>
+                    <i class="fa-solid fa-eye toggle-password" onclick="togglePasswordVisibility('loginPassword', this)"></i>
+                </div>
+            </div>
+            <a href="#" class="link-text" onclick="showView('view-forgot-password')">Forgot Password?</a>
+            
+            <button type="submit" class="btn btn-primary">Login</button>
+            <button type="button" class="btn btn-google" onclick="handleGoogleLogin()">
+                <i class="fa-brands fa-google" style="color: #EA4335;"></i> Continue with Google
+            </button>
+            <button type="button" class="btn btn-outline" style="border:none;" onclick="showView('view-landing')">Back</button>
+        </form>
+    </div>
+
+    <!-- 3. FORGOT PASSWORD VIEW -->
+    <div id="view-forgot-password" class="view">
+        <h3 style="margin-bottom: 15px; font-size: 1.1rem; text-align:center;">Forgot Password</h3>
+        <form id="forgotForm" onsubmit="handleForgotPassword(event)">
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-user field-icon"></i>
+                    <input type="text" id="fpUsername" class="form-control" placeholder="Enter Username" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-envelope field-icon"></i>
+                    <input type="email" id="fpEmail" class="form-control" placeholder="Enter Email (e.g. user@gmail.com)" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-calendar field-icon"></i>
+                    <input type="date" id="fpDob" class="form-control" required>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Verify Information</button>
+            <button type="button" class="btn btn-outline" style="border:none;" onclick="showView('view-login')">Back to Login</button>
+        </form>
+    </div>
+
+    <!-- 4. CHANGE PASSWORD VIEW -->
+    <div id="view-change-password" class="view">
+        <h3 style="margin-bottom: 15px; font-size: 1.1rem; text-align:center;">Change Password</h3>
+        <form id="changePassForm" onsubmit="handleChangePassword(event)">
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-key field-icon"></i>
+                    <input type="password" id="cpNewPass" class="form-control has-toggle" placeholder="Enter New Password" required>
+                    <i class="fa-solid fa-eye toggle-password" onclick="togglePasswordVisibility('cpNewPass', this)"></i>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-lock field-icon"></i>
+                    <input type="password" id="cpConfirmPass" class="form-control has-toggle" placeholder="Confirm New Password" required>
+                    <i class="fa-solid fa-eye toggle-password" onclick="togglePasswordVisibility('cpConfirmPass', this)"></i>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Update Password</button>
+        </form>
+    </div>
+
+    <!-- 5. REGISTER TYPE SELECTION -->
+    <div id="view-register-type" class="view">
+        <h3 style="margin-bottom: 15px; font-size: 1.1rem; text-align:center;">Register As</h3>
+        <button class="btn btn-outline" style="margin-bottom:12px; padding:18px;" onclick="showView('view-driver-reg')">
+            <i class="fa-solid fa-taxi" style="font-size:1.2rem;"></i> Cab Owner (Driver)
+        </button>
+        <button class="btn btn-outline" style="padding:18px;" onclick="showView('view-passenger-reg')">
+            <i class="fa-solid fa-person-walking-luggage" style="font-size:1.2rem;"></i> Passenger
+        </button>
+        <button type="button" class="btn btn-outline" style="border:none; margin-top:15px;" onclick="showView('view-landing')">Back</button>
+    </div>
+
+    <!-- 6. PASSENGER REGISTRATION -->
+    <div id="view-passenger-reg" class="view">
+        <h3 style="margin-bottom: 15px; font-size: 1.1rem; text-align:center;">Passenger Registration</h3>
+        <form id="passengerRegForm" onsubmit="handlePassengerReg(event)">
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-user field-icon"></i>
+                    <input type="text" id="pUser" class="form-control" placeholder="User Name" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-envelope field-icon"></i>
+                    <input type="email" id="pEmail" class="form-control" placeholder="Email (e.g. user@gmail.com)" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-phone field-icon"></i>
+                    <input type="tel" id="pMobile" inputmode="numeric" class="form-control" placeholder="Mobile Number (10 Digits)" maxlength="13" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-lock field-icon"></i>
+                    <input type="password" id="pPass" class="form-control has-toggle" placeholder="Password" required>
+                    <i class="fa-solid fa-eye toggle-password" onclick="togglePasswordVisibility('pPass', this)"></i>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-check-double field-icon"></i>
+                    <input type="password" id="pConfirmPass" class="form-control has-toggle" placeholder="Confirm Password" required>
+                    <i class="fa-solid fa-eye toggle-password" onclick="togglePasswordVisibility('pConfirmPass', this)"></i>
+                </div>
+            </div>
+
+            <label style="font-size: 0.85rem; font-weight: 500;">Passenger Terms & Conditions</label>
+            <div class="terms-box">
+                <ol>
+                    <li>Passengers must be punctual at designated pick-up points to ensure seamless carpool sharing.</li>
+                    <li>Strict zero-tolerance policy for smoking, alcohol consumption, or abusive behavior in shared rides.</li>
+                    <li>Passengers must match profile identity before entering the vehicle for community safety.</li>
+                    <li>Route detours are prohibited unless mutually agreed upon by all shared passengers and the driver.</li>
+                    <li>Luggage must strictly fit within designated personal space allowances.</li>
+                    <li>Cancellations under 15 minutes before departure are subject to convenience charges.</li>
+                    <li>In-app payments must be cleared immediately upon destination arrival.</li>
+                </ol>
+            </div>
+
+            <div class="radio-group">
+                <label class="radio-option" id="pAgreeLabel" onclick="selectRadio('pTerms', 'agree', 'pAgreeLabel', 'pDisagreeLabel')">
+                    <input type="radio" name="pTerms" value="agree" id="pAgree"> Agree
+                </label>
+                <label class="radio-option" id="pDisagreeLabel" onclick="selectRadio('pTerms', 'disagree', 'pDisagreeLabel', 'pAgreeLabel')">
+                    <input type="radio" name="pTerms" value="disagree" id="pDisagree"> Not Agree
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Register</button>
+            <button type="button" class="btn btn-outline" style="border:none;" onclick="showView('view-register-type')">Back</button>
+        </form>
+    </div>
+
+    <!-- 7. DRIVER REGISTRATION STEP 1: ACCOUNT -->
+    <div id="view-driver-reg" class="view">
+        <div class="progress-bar"><div class="progress-fill" style="width: 25%;"></div></div>
+        <h3 style="margin-bottom: 15px; font-size: 1.1rem; text-align:center;">Driver - Credentials</h3>
+        <form id="driverStep1" onsubmit="handleDriverStep1(event)">
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-user field-icon"></i>
+                    <input type="text" id="dUser" class="form-control" placeholder="User Name" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-lock field-icon"></i>
+                    <input type="password" id="dPass" class="form-control has-toggle" placeholder="Password" required>
+                    <i class="fa-solid fa-eye toggle-password" onclick="togglePasswordVisibility('dPass', this)"></i>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-check-double field-icon"></i>
+                    <input type="password" id="dConfirmPass" class="form-control has-toggle" placeholder="Confirm Password" required>
+                    <i class="fa-solid fa-eye toggle-password" onclick="togglePasswordVisibility('dConfirmPass', this)"></i>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Next <i class="fa-solid fa-arrow-right"></i></button>
+            <button type="button" class="btn btn-outline" style="border:none;" onclick="showView('view-register-type')">Back</button>
+        </form>
+    </div>
+
+    <!-- 8. DRIVER REGISTRATION STEP 2: SELF DETAILS -->
+    <div id="view-driver-self" class="view">
+        <div class="progress-bar"><div class="progress-fill" style="width: 50%;"></div></div>
+        <h3 style="margin-bottom: 15px; font-size: 1.1rem; text-align:center;">Driver - Self Details</h3>
+        <form id="driverStep2" onsubmit="handleDriverStep2(event)">
+            
+            <div class="form-group">
+                <label>Upload Profile Photo (PDF/JPG)</label>
+                <div class="file-upload-box" id="box-dProfilePic">
+                    <i class="fa-solid fa-camera" style="font-size:1.2rem; color:var(--primary-peach);"></i>
+                    <div class="file-info" id="info-dProfilePic">Take photo or browse gallery/files</div>
+                    <input type="file" id="dProfilePic" accept="image/jpeg,image/jpg,application/pdf,image/*" required onchange="handleFileChange(this, 'info-dProfilePic', 'box-dProfilePic')">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-id-card field-icon"></i>
+                    <input type="text" id="dFirstName" class="form-control" placeholder="First Name" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-id-card field-icon"></i>
+                    <input type="text" id="dSurname" class="form-control" placeholder="Surname" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-phone field-icon"></i>
+                    <input type="tel" id="dMobile" inputmode="numeric" autocomplete="tel" class="form-control" placeholder="Mobile Number (10 Digits)" maxlength="13" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-house field-icon"></i>
+                    <input type="text" id="dAddress" class="form-control" placeholder="Residential Address" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-envelope field-icon"></i>
+                    <input type="email" id="dEmail" class="form-control" placeholder="Email Address (e.g. user@gmail.com)" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-address-card field-icon"></i>
+                    <input type="text" id="dAadhaar" class="form-control" placeholder="Aadhaar Number (12 Digits)" maxlength="12" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Date of Birth</label>
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-calendar field-icon"></i>
+                    <input type="date" id="dDob" class="form-control" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-phone field-icon"></i>
+                    <input type="text" id="dOptMobile" inputmode="numeric" class="form-control" placeholder="Optional Mobile Number (10 Digits)" maxlength="13">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Licence Updation Date</label>
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-calendar-check field-icon"></i>
+                    <input type="date" id="dLicenceUpdate" class="form-control" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Licence Valid Till</label>
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-calendar-xmark field-icon"></i>
+                    <input type="date" id="dLicenceValid" class="form-control" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Next <i class="fa-solid fa-arrow-right"></i></button>
+            <button type="button" class="btn btn-outline" style="border:none;" onclick="showView('view-driver-reg')">Back</button>
+        </form>
+    </div>
+
+    <!-- 9. DRIVER REGISTRATION STEP 3: VEHICLE DETAILS -->
+    <div id="view-driver-vehicle" class="view">
+        <div class="progress-bar"><div class="progress-fill" style="width: 75%;"></div></div>
+        <h3 style="margin-bottom: 15px; font-size: 1.1rem; text-align:center;">Driver - Vehicle Details</h3>
+        <form id="driverStep3" onsubmit="handleDriverStep3(event)">
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-car field-icon"></i>
+                    <input type="text" id="vModel" class="form-control" placeholder="Car Name & Model" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-rectangle-list field-icon"></i>
+                    <input type="text" id="vPassingNo" class="form-control" placeholder="Car Passing No. (e.g. MH12AB1234)" style="text-transform:uppercase" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Upload RC Book (PDF/JPG)</label>
+                <div class="file-upload-box" id="box-vRc">
+                    <i class="fa-solid fa-file-pdf" style="font-size:1.2rem; color:var(--primary-peach);"></i>
+                    <div class="file-info" id="info-vRc">Upload RC Book document</div>
+                    <input type="file" id="vRc" accept="image/jpeg,image/jpg,application/pdf,image/*" required onchange="handleFileChange(this, 'info-vRc', 'box-vRc')">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Upload Driving Licence (PDF/JPG)</label>
+                <div class="file-upload-box" id="box-vLicence">
+                    <i class="fa-solid fa-id-badge" style="font-size:1.2rem; color:var(--primary-peach);"></i>
+                    <div class="file-info" id="info-vLicence">Upload Driving Licence document</div>
+                    <input type="file" id="vLicence" accept="image/jpeg,image/jpg,application/pdf,image/*" required onchange="handleFileChange(this, 'info-vLicence', 'box-vLicence')">
+                </div>
+            </div>
+
+            <!-- MANDATORY 4 SEPARATE VEHICLE PHOTO VIEWS -->
+            <label style="font-size: 0.85rem; font-weight: 500;">Mandatory 4 Car Photos (All Sides)</label>
+            <div class="photo-grid">
+                <div class="file-upload-box" id="box-vPhotoFront">
+                    <i class="fa-solid fa-camera" style="color:var(--primary-peach);"></i>
+                    <div class="file-info" id="info-vPhotoFront">Front View</div>
+                    <input type="file" id="vPhotoFront" accept="image/jpeg,image/jpg,application/pdf,image/*" required onchange="handleFileChange(this, 'info-vPhotoFront', 'box-vPhotoFront')">
+                </div>
+                <div class="file-upload-box" id="box-vPhotoBack">
+                    <i class="fa-solid fa-camera" style="color:var(--primary-peach);"></i>
+                    <div class="file-info" id="info-vPhotoBack">Back View</div>
+                    <input type="file" id="vPhotoBack" accept="image/jpeg,image/jpg,application/pdf,image/*" required onchange="handleFileChange(this, 'info-vPhotoBack', 'box-vPhotoBack')">
+                </div>
+                <div class="file-upload-box" id="box-vPhotoLeft">
+                    <i class="fa-solid fa-camera" style="color:var(--primary-peach);"></i>
+                    <div class="file-info" id="info-vPhotoLeft">Left Side</div>
+                    <input type="file" id="vPhotoLeft" accept="image/jpeg,image/jpg,application/pdf,image/*" required onchange="handleFileChange(this, 'info-vPhotoLeft', 'box-vPhotoLeft')">
+                </div>
+                <div class="file-upload-box" id="box-vPhotoRight">
+                    <i class="fa-solid fa-camera" style="color:var(--primary-peach);"></i>
+                    <div class="file-info" id="info-vPhotoRight">Right Side</div>
+                    <input type="file" id="vPhotoRight" accept="image/jpeg,image/jpg,application/pdf,image/*" required onchange="handleFileChange(this, 'info-vPhotoRight', 'box-vPhotoRight')">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-phone field-icon"></i>
+                    <input type="tel" id="vEmergencyContact" inputmode="numeric" class="form-control" placeholder="Emergency Contact (10 Digits)" maxlength="13" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-credit-card field-icon"></i>
+                    <input type="text" id="vPanCard" class="form-control" placeholder="PAN Card No. (e.g. ABCDE1234F)" maxlength="10" style="text-transform:uppercase" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Next <i class="fa-solid fa-arrow-right"></i></button>
+            <button type="button" class="btn btn-outline" style="border:none;" onclick="showView('view-driver-self')">Back</button>
+        </form>
+    </div>
+
+    <!-- 10. DRIVER REGISTRATION STEP 4: TERMS & CONDITIONS -->
+    <div id="view-driver-terms" class="view">
+        <div class="progress-bar"><div class="progress-fill" style="width: 100%;"></div></div>
+        <h3 style="margin-bottom: 15px; font-size: 1.1rem; text-align:center;">Driver Terms & Conditions</h3>
+        <form id="driverStep4" onsubmit="handleDriverStep4(event)">
+            
+            <div class="terms-box">
+                <ol>
+                    <li>Driver must maintain a valid commercial or relevant driving license at all times.</li>
+                    <li>Vehicle must hold valid fitness, registration (RC), and active third-party insurance.</li>
+                    <li>Strict adherence to dynamic carpool route schedules without unauthorized delays.</li>
+                    <li>Absolute zero tolerance for driving under the influence of alcohol or non-prescribed drugs.</li>
+                    <li>Driver must maintain car cleanliness and operational safety mechanisms (seatbelts, airbags).</li>
+                    <li>Carrying passengers exceeding permissible seating capacity is strictly illegal.</li>
+                    <li>Driver agrees to dynamic fair-share route pooling pricing calculated by CarpoolX algorithm.</li>
+                    <li>Emergency contacts and personal identity documents must remain up-to-date.</li>
+                    <li>Driver must follow national traffic laws and safe speed limits at all times.</li>
+                    <li>Respect passenger privacy and safety; improper behavior leads to immediate blacklisting.</li>
+                    <li>App notifications and GPS location tracking must remain ON during active trips.</li>
+                    <li>Vehicle images uploaded must match the real-time vehicle deployed for rides.</li>
+                    <li>Promptly report all road accidents or safety incidents to CarpoolX support immediately.</li>
+                    <li>Maintain transparent cashless transaction records through the platform.</li>
+                    <li>CarpoolX reserves the right to audit documents and vehicle status periodically.</li>
+                </ol>
+            </div>
+
+            <div class="radio-group">
+                <label class="radio-option" id="dAgreeLabel" onclick="selectRadio('dTerms', 'agree', 'dAgreeLabel', 'dDisagreeLabel')">
+                    <input type="radio" name="dTerms" value="agree" id="dAgree"> Agree
+                </label>
+                <label class="radio-option" id="dDisagreeLabel" onclick="selectRadio('dTerms', 'disagree', 'dDisagreeLabel', 'dAgreeLabel')">
+                    <input type="radio" name="dTerms" value="disagree" id="dDisagree"> Not Agree
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Complete Registration</button>
+            <button type="button" class="btn btn-outline" style="border:none;" onclick="showView('view-driver-vehicle')">Back</button>
+        </form>
+    </div>
+
+    <!-- 11. DASHBOARD / LOGGED IN HOME VIEW -->
+    <div id="view-dashboard" class="view">
+        <div class="dashboard-card">
+            <i class="fa-solid fa-circle-check"></i>
+            <h2 id="dashWelcome" style="margin-bottom: 5px;">Welcome!</h2>
+            <div id="dashRole" class="user-tag">Passenger Account</div>
+            <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom: 25px;">
+                You are successfully logged in to CarpoolX. Find or host your shared route now.
+            </p>
+            <button class="btn btn-primary" onclick="handleLogout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+        </div>
+    </div>
+
+</div>
+
+<script src="api-client.js"></script>
+<script>
+    // active Session state
+    let activeSession = null;
+
+    let tempForgotUser = null;
+    let driverData = {}; // Temp store for step-by-step driver registration
+
+    // Strict Real World Regex Patterns
+    const REGEX = {
+        email: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|in|org|net|edu|co|gov)$/i,
+        phone: /^[6-9]\d{9}$/,
+        aadhaar: /^\d{12}$/,
+        pan: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/,
+        passingNo: /^[A-Z]{2}[0-9]{2}[A-Z]{1,2}[0-9]{4}$/
+    };
+
+    // View Navigation Utility
+    function showView(viewId) {
+        clearAlert();
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showAlert(msg, type = 'error') {
+        const el = document.getElementById('statusAlert');
+        el.className = `status-msg ${type}`;
+        el.innerText = msg;
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function clearAlert() {
+        const el = document.getElementById('statusAlert');
+        el.className = 'status-msg';
+        el.innerText = '';
+    }
+
+    // Toggle Password Visibility
+    function togglePasswordVisibility(inputId, icon) {
+        const input = document.getElementById(inputId);
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+
+    // Radio Selection Helper
+    function selectRadio(groupName, value, selectedId, unselectedId) {
+        document.getElementById(selectedId).classList.add('selected');
+        document.getElementById(unselectedId).classList.remove('selected');
+        if(value === 'agree') {
+            document.getElementById(groupName === 'pTerms' ? 'pAgree' : 'dAgree').checked = true;
+        } else {
+            document.getElementById(groupName === 'pTerms' ? 'pDisagree' : 'dDisagree').checked = true;
+        }
+    }
+
+    // File Input UI Handler
+    function handleFileChange(input, infoId, boxId) {
+        const infoEl = document.getElementById(infoId);
+        const boxEl = document.getElementById(boxId);
+        
+        if (input.files && input.files.length > 0) {
+            boxEl.classList.add('has-file');
+            infoEl.innerText = input.files[0].name;
+        }
+    }
+
+    function normalizePhone(value) {
+        return String(value || '').replace(/\D/g, '');
+    }
+
+    function goToDashboard() {
+        let role = null;
+        try {
+            const session = JSON.parse(localStorage.getItem('activeSession') || 'null');
+            role = session ? session.role : null;
+        } catch (e) { /* ignore malformed/unavailable storage */ }
+
+        if (role === 'driver') {
+            window.location.href = 'driver-dashboard.html';
+        } else {
+            window.location.href = 'index final 1.html';
+        }
+    }
+
+    function handleLogout() {
+        clearSession();
+        showAlert('Successfully logged out.', 'success');
+        setTimeout(() => { window.location.href = 'login.html'; }, 600);
+    }
+
+    // --- LOGIC & VALIDATION HANDLERS ---
+
+    async function handleLogin(e) {
+        e.preventDefault();
+        const emailInput = document.getElementById('loginUsername').value.trim().toLowerCase();
+        const pass = document.getElementById('loginPassword').value.trim();
+
+        if (!REGEX.email.test(emailInput)) {
+            showAlert('Please log in with the email address you registered with.');
+            return;
+        }
+
+        try {
+            const data = await apiLogin({ email: emailInput, password: pass });
+            persistSession(data);
+            showAlert('Login Successful!', 'success');
+            setTimeout(goToDashboard, 800);
+        } catch (error) {
+            showAlert(error.message || 'Invalid credentials. Please check your email/password.');
+        }
+    }
+
+    function handleGoogleLogin() {
+        showAlert('Google sign-in isn\'t connected yet - please use email + password for now.');
+    }
+
+    function handleForgotPassword(e) {
+        e.preventDefault();
+        showAlert('Password reset isn\'t connected to the backend yet - contact support to reset your password for now.');
+    }
+
+    function handleChangePassword(e) {
+        e.preventDefault();
+        showAlert('Password reset isn\'t connected to the backend yet.');
+    }
+
+    async function handlePassengerReg(e) {
+        e.preventDefault();
+        const user = document.getElementById('pUser').value.trim();
+        const email = document.getElementById('pEmail').value.trim();
+        const mobile = normalizePhone(document.getElementById('pMobile').value);
+        const pass = document.getElementById('pPass').value.trim();
+        const confirmPass = document.getElementById('pConfirmPass').value.trim();
+        const agreeChecked = document.getElementById('pAgree').checked;
+
+        if (!REGEX.email.test(email)) {
+            showAlert('Please enter a valid Email address (e.g. user@gmail.com or user@domain.in)');
+            return;
+        }
+
+        const cleanMobile = String(mobile || '').replace(/\D/g, '');
+        const tenDigitMobile = cleanMobile.length > 10 ? cleanMobile.slice(-10) : cleanMobile;
+
+        if (!REGEX.phone.test(tenDigitMobile)) {
+            showAlert('Mobile Number must be 10 digits starting with 6, 7, 8, or 9.');
+            return;
+        }
+
+        if (pass.length < 6) {
+            showAlert('Password must be at least 6 characters long.');
+            return;
+        }
+
+        if (pass !== confirmPass) {
+            showAlert('Passwords do not match!');
+            return;
+        }
+
+        if (!agreeChecked) {
+            showAlert('Agreeing to all terms and conditions is mandatory.');
+            return;
+        }
+
+        try {
+            const data = await apiRegister({
+                name: user,
+                email,
+                phone: mobile,
+                password: pass,
+                isDriver: false,
+            });
+            persistSession(data);
+            showAlert('Registration completed successfully. Welcome to CarpoolX!', 'success');
+            setTimeout(goToDashboard, 1200);
+        } catch (error) {
+            showAlert(error.message || 'Registration failed. Please try again.');
+        }
+    }
+
+    function handleDriverStep1(e) {
+        e.preventDefault();
+        const user = document.getElementById('dUser').value.trim();
+        const pass = document.getElementById('dPass').value.trim();
+        const confirmPass = document.getElementById('dConfirmPass').value.trim();
+
+        if (pass.length < 6) {
+            showAlert('Password must be at least 6 characters long.');
+            return;
+        }
+
+        if (pass !== confirmPass) {
+            showAlert('Passwords do not match!');
+            return;
+        }
+
+        driverData.username = user;
+        driverData.password = pass;
+        showView('view-driver-self');
+    }
+
+    function handleDriverStep2(e) {
+        e.preventDefault();
+        const pic = document.getElementById('dProfilePic').files;
+        const mobile = normalizePhone(document.getElementById('dMobile').value);
+        const optMobile = normalizePhone(document.getElementById('dOptMobile').value);
+        const email = document.getElementById('dEmail').value.trim();
+        const aadhaar = document.getElementById('dAadhaar').value.trim();
+        const licUpdate = document.getElementById('dLicenceUpdate').value;
+        const licValid = document.getElementById('dLicenceValid').value;
+
+        if (pic.length === 0) {
+            showAlert('Please upload your Profile Photo.');
+            return;
+        }
+
+        if (!REGEX.phone.test(mobile)) {
+            showAlert('Mobile Number must be 10 digits starting with 6, 7, 8, or 9 (e.g., 9876543210).');
+            return;
+        }
+
+        if (optMobile !== "" && !REGEX.phone.test(optMobile)) {
+            showAlert('Optional Mobile Number must be 10 digits starting with 6, 7, 8, or 9.');
+            return;
+        }
+
+        if (!REGEX.email.test(email)) {
+            showAlert('Invalid Email format! Must be valid e.g. user@gmail.com or name@domain.in');
+            return;
+        }
+
+        if (!REGEX.aadhaar.test(aadhaar)) {
+            showAlert('Aadhaar Number must be strictly 12 numerical digits (e.g., 123456789012).');
+            return;
+        }
+
+        if (new Date(licValid) <= new Date(licUpdate)) {
+            showAlert('Licence Valid Till date must be AFTER Licence Updation Date.');
+            return;
+        }
+
+        driverData.profilePic = pic[0];
+        driverData.firstName = document.getElementById('dFirstName').value.trim();
+        driverData.surname = document.getElementById('dSurname').value.trim();
+        driverData.mobile = mobile;
+        driverData.address = document.getElementById('dAddress').value.trim();
+        driverData.email = email;
+        driverData.aadhaar = aadhaar;
+        driverData.dob = document.getElementById('dDob').value;
+        driverData.optMobile = optMobile;
+        driverData.licenceUpdate = licUpdate;
+        driverData.licenceValid = licValid;
+
+        showView('view-driver-vehicle');
+    }
+
+    function handleDriverStep3(e) {
+        e.preventDefault();
+        const passingNo = document.getElementById('vPassingNo').value.trim().toUpperCase();
+        const rc = document.getElementById('vRc').files;
+        const licence = document.getElementById('vLicence').files;
+        
+        const pFront = document.getElementById('vPhotoFront').files;
+        const pBack = document.getElementById('vPhotoBack').files;
+        const pLeft = document.getElementById('vPhotoLeft').files;
+        const pRight = document.getElementById('vPhotoRight').files;
+
+        const emergencyEl = document.getElementById('vEmergencyContact');
+        const emergency = emergencyEl ? normalizePhone(emergencyEl.value.trim()) : '';
+        const pan = document.getElementById('vPanCard').value.trim().toUpperCase();
+
+        if (!REGEX.passingNo.test(passingNo)) {
+            showAlert('Invalid Car Passing Number format. Example: MH12AB1234');
+            return;
+        }
+
+        if (rc.length === 0 || licence.length === 0) {
+            showAlert('Please upload RC Book and Driving Licence.');
+            return;
+        }
+
+        if (pFront.length === 0 || pBack.length === 0 || pLeft.length === 0 || pRight.length === 0) {
+            showAlert('All 4 individual photos of the vehicle (Front, Back, Left, Right) are mandatory.');
+            return;
+        }
+
+        if (!REGEX.phone.test(emergency)) {
+            showAlert('Emergency Contact must be a valid 10-digit mobile number.');
+            return;
+        }
+
+        if (!REGEX.pan.test(pan)) {
+            showAlert('PAN Card number must be 10 characters (5 letters, 4 numbers, 1 letter, e.g. ABCDE1234F).');
+            return;
+        }
+
+        driverData.vModel = document.getElementById('vModel').value.trim();
+        driverData.vPassingNo = passingNo;
+        driverData.emergencyContact = emergency;
+        driverData.panCard = pan;
+
+        showView('view-driver-terms');
+    }
+
+    async function handleDriverStep4(e) {
+        e.preventDefault();
+        const agreeChecked = document.getElementById('dAgree').checked;
+
+        if (!agreeChecked) {
+            showAlert('Sorry, cannot register without agreeing to all terms and conditions.');
+            return;
+        }
+
+        try {
+            const data = await apiRegister({
+                name: `${driverData.firstName} ${driverData.surname}`.trim(),
+                email: driverData.email,
+                phone: driverData.mobile,
+                password: driverData.password,
+                isDriver: true,
+                vehicleDetails: {
+                    make: driverData.vModel,
+                    model: driverData.vModel,
+                    plateNumber: driverData.vPassingNo,
+                },
+            });
+            persistSession(data);
+            showAlert('Registration done. Welcome to CarpoolX!', 'success');
+            setTimeout(goToDashboard, 1200);
+        } catch (error) {
+            showAlert(error.message || 'Registration failed. Please try again.');
+        }
+    }
+</script>
+
+<!-- Form utilities: masks & inline validation -->
+<script src="form-utils.js"></script>
+<script>
+  (function(){
+    ['driverPhone','dMobile','dOptMobile','vEmergencyContact','loginMobile','pMobile'].forEach(id=>{
+      const el = document.getElementById(id);
+      if (el && /phone|mobile|contact/i.test(id)) FormUtils.attachPhoneMask(el);
+    });
+
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+      FormUtils.attachValidation(loginForm, {
+        'loginUsername': [ { test: (value) => value.trim().length > 0 || (document.getElementById('loginMobile') && document.getElementById('loginMobile').value.trim().length > 0), message: 'Please enter username, email, or mobile number.' } ],
+        'loginMobile': [ { test: (value) => !value || FormUtils.validators.phone10(value.replace(/\D/g,'')), message: 'Enter a valid 10-digit mobile number or leave blank.' } ],
+        'loginPassword': [ { test: FormUtils.validators.required, message: 'Password is required.' }, { test: FormUtils.validators.minLength(6), message: 'Password must be at least 6 characters.' } ]
+      });
+    }
+
+    const passengerForm = document.getElementById('passengerRegForm');
+    if (passengerForm) {
+      FormUtils.attachValidation(passengerForm, {
+        'pUser': [ { test: FormUtils.validators.required, message: 'Please enter a username.' } ],
+        'pEmail': [ { test: FormUtils.validators.email, message: 'Enter a valid email.' } ],
+        'pMobile': [ { test: (value) => FormUtils.validators.phone10(value.replace(/\D/g,'')), message: 'Enter a valid 10-digit mobile number.' } ],
+        'pPass': [ { test: FormUtils.validators.minLength(6), message: 'Password must be at least 6 characters.' } ],
+        'pConfirmPass': [ { test: (v)=> v === (document.getElementById('pPass')||{}).value, message: 'Passwords must match.' } ]
+      });
+    }
+
+    const driverStep1 = document.getElementById('driverStep1');
+    if (driverStep1) {
+      FormUtils.attachValidation(driverStep1, {
+        'dUser': [ { test: FormUtils.validators.required, message: 'Username required.' } ],
+        'dPass': [ { test: FormUtils.validators.minLength(6), message: 'Password must be at least 6 characters.' } ],
+        'dConfirmPass': [ { test: (v)=> v === (document.getElementById('dPass')||{}).value, message: 'Passwords must match.' } ]
+      });
+    }
+
+    const driverStep2 = document.getElementById('driverStep2');
+    if (driverStep2) {
+      FormUtils.attachValidation(driverStep2, {
+        'dProfilePic': [ { test: (v)=>{ const el=document.getElementById('dProfilePic'); return el && el.files && el.files.length>0; }, message: 'Please upload a profile photo.' } ],
+        'dMobile': [ { test: (v)=> FormUtils.validators.phone10(v.replace(/\D/g,'')), message: 'Mobile must be 10 digits.' } ],
+        'dEmail': [ { test: FormUtils.validators.email, message: 'Enter a valid email.' } ],
+        'dAadhaar': [ { test: (v)=> FormUtils.validators.aadhaar(v.replace(/\D/g,'')), message: 'Aadhaar must be 12 digits.' } ]
+      });
+    }
+
+    const driverStep3 = document.getElementById('driverStep3');
+    if (driverStep3) {
+      FormUtils.attachValidation(driverStep3, {
+        'vPassingNo': [ { test: FormUtils.validators.passingNo, message: 'Invalid car passing number.' } ],
+        'vRc': [ { test: (v)=>{ const el=document.getElementById('vRc'); return el && el.files && el.files.length>0; }, message: 'Upload RC book.' } ],
+        'vLicence': [ { test: (v)=>{ const el=document.getElementById('vLicence'); return el && el.files && el.files.length>0; }, message: 'Upload licence.' } ]
+      });
+    }
+
+  })();
+</script>
+
+</body>
+</html>

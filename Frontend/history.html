@@ -1,0 +1,899 @@
+
+
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CarpoolX - Ride History</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* --- COLOR PALETTE & VARIABLES (White & Warm Peach Theme) --- */
+    :root {
+      --bg-gradient: linear-gradient(180deg, #FFFFFF 0%, #FFF5F2 100%);
+      --card-bg: #FFFFFF;
+      --primary-peach: #FF6B4A;
+      --primary-peach-hover: #E85535;
+      --soft-peach: #FFF2EE;
+      --accent-peach: #FFD2C4;
+      --peach-glow: rgba(255, 107, 74, 0.15);
+      --text-dark: #231E1C;
+      --text-muted: #7C706B;
+      --border-color: #F4ECE8;
+      --shadow-soft: 0 12px 30px -8px rgba(255, 107, 74, 0.12), 0 4px 12px rgba(0,0,0,0.03);
+      --radius: 20px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg-gradient);
+      color: var(--text-dark);
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 0px;
+    }
+
+    /* --- FULL VIEWPORT APP CONTAINER --- */
+    .app-container {
+      width: 100%;
+      max-width: 100%;
+      min-height: 100vh;
+      background: #FFFFFF;
+      border-radius: 0;
+      box-shadow: none;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      border: none;
+      padding: 0px;
+    }
+
+    /* --- HEADER SECTION --- */
+    .header {
+      padding: 24px 20px 16px;
+      background: #FFFFFF;
+      position: relative;
+      border-bottom: 1px solid #FAF0EC;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand-title {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(45deg, #FF6B4A, #FF8E53);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .page-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 2px;
+      font-weight: 500;
+    }
+
+    .user-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+    }
+
+    .profile-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: var(--soft-peach);
+      color: var(--primary-peach);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 16px;
+      border: 2px solid var(--accent-peach);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .profile-btn:hover {
+      transform: scale(1.06);
+      box-shadow: 0 4px 12px var(--peach-glow);
+    }
+
+    .menu-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .menu-btn:hover {
+      background: var(--soft-peach);
+    }
+
+    /* --- DROPDOWN MENU --- */
+    .dropdown-menu {
+      position: absolute;
+      top: 52px;
+      right: 0;
+      background: #FFFFFF;
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      box-shadow: var(--shadow-soft);
+      width: 190px;
+      display: none;
+      flex-direction: column;
+      z-index: 100;
+      overflow: hidden;
+    }
+
+    .dropdown-menu.active {
+      display: flex;
+    }
+
+    .dropdown-item {
+      padding: 12px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-dark);
+      background: none;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: background 0.2s;
+    }
+
+    .dropdown-item:hover {
+      background: var(--soft-peach);
+      color: var(--primary-peach);
+    }
+
+    /* --- DEFAULT STATUS BADGE --- */
+    .retention-badge {
+      font-size: 11px;
+      background: var(--soft-peach);
+      color: var(--primary-peach);
+      padding: 6px 14px;
+      border-radius: 20px;
+      margin: 14px 20px 0 20px;
+      display: inline-block;
+      font-weight: 700;
+      border: 1px dashed var(--accent-peach);
+    }
+
+    /* --- HORIZONTAL FILTER TABS --- */
+    .filter-wrapper {
+      padding: 16px 20px 8px;
+      overflow-x: auto;
+      white-space: nowrap;
+      scrollbar-width: none;
+    }
+
+    .filter-wrapper::-webkit-scrollbar {
+      display: none;
+    }
+
+    .filter-pills {
+      display: inline-flex;
+      gap: 10px;
+    }
+
+    .pill {
+      padding: 8px 18px;
+      border-radius: 25px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid var(--border-color);
+      background: #FFFFFF;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .pill.active {
+      background: var(--primary-peach);
+      color: #FFFFFF;
+      border-color: var(--primary-peach);
+      box-shadow: 0 4px 14px var(--peach-glow);
+    }
+
+    /* --- RIDES LIST SECTION --- */
+    .rides-container {
+      padding: 12px 20px 24px;
+      flex-grow: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .ride-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 16px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-soft);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      cursor: pointer;
+    }
+
+    .ride-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--accent-peach);
+      box-shadow: 0 16px 32px -8px rgba(255, 107, 74, 0.2);
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px dashed var(--border-color);
+    }
+
+    .carpool-badge {
+      background: var(--soft-peach);
+      color: var(--primary-peach);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 10px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .ride-price {
+      font-weight: 800;
+      font-size: 16px;
+      color: var(--text-dark);
+    }
+
+    .route-info {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .point {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot.pickup { background: #10B981; }
+    .dot.drop { background: var(--primary-peach); }
+
+    /* CARD FOOTER */
+    .card-footer {
+      background: #FAF5F3;
+      margin: 12px -16px -16px -16px;
+      padding: 10px 16px;
+      border-bottom-left-radius: var(--radius);
+      border-bottom-right-radius: var(--radius);
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .rebook-tag {
+      color: var(--primary-peach);
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .booking-time {
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+
+    /* --- MODALS --- */
+    .modal-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(35, 30, 28, 0.45);
+      backdrop-filter: blur(5px);
+      display: none;
+      justify-content: center;
+      align-items: flex-end;
+      z-index: 200;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: #FFFFFF;
+      width: 100%;
+      border-top-left-radius: 28px;
+      border-top-right-radius: 28px;
+      padding: 24px;
+      animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .modal-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .modal-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--text-dark);
+    }
+
+    .close-modal-btn {
+      background: var(--soft-peach);
+      border: none;
+      color: var(--primary-peach);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .option-btn {
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid var(--border-color);
+      background: #FFFFFF;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-dark);
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.2s;
+    }
+
+    .option-btn.danger {
+      color: #EF4444;
+      border-color: #FEE2E2;
+      background: #FEF2F2;
+    }
+
+    .option-btn:hover {
+      background: var(--soft-peach);
+    }
+
+    /* RE-BOOK DETAILS BOX */
+    .rebook-box {
+      background: var(--soft-peach);
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid var(--accent-peach);
+      margin-bottom: 20px;
+    }
+
+    .rebook-route {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .rebook-meta {
+      display: flex;
+      justify-content: space-between;
+      padding-top: 10px;
+      border-top: 1px solid var(--accent-peach);
+      font-size: 13px;
+    }
+
+    .primary-btn {
+      width: 100%;
+      padding: 15px;
+      background: var(--primary-peach);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 6px 16px var(--peach-glow);
+      transition: background 0.2s;
+    }
+
+    .primary-btn:hover {
+      background: var(--primary-peach-hover);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- HEADER -->
+    <div class="header">
+      <div class="top-bar">
+        <div>
+          <div class="brand-title">CARPOOLX</div>
+          <div class="page-subtitle">Ride History</div>
+        </div>
+
+        <div class="user-actions">
+          <!-- Profile Icon (Redirects to Profile Page) -->
+          <button class="profile-btn" id="profileBtn" onclick="goToProfile()" title="Go to Profile">A</button>
+
+          <!-- 3-Dots Menu -->
+          <button class="menu-btn" id="menuBtn" onclick="toggleDropdown()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#231E1C" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+          </button>
+
+          <!-- Dropdown Popup -->
+          <div class="dropdown-menu" id="dropdownMenu">
+            <button class="dropdown-item" onclick="openModal('manageModal')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              Manage History
+            </button>
+            <button class="dropdown-item" onclick="openModal('defaultModal')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              Set Default As
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUTO-DELETE RETENTION BADGE -->
+    <div class="retention-badge" id="retentionStatus">
+      Auto-delete preference: Not Set
+    </div>
+
+    <!-- FILTER PILLS -->
+    <div class="filter-wrapper">
+      <div class="filter-pills">
+        <button class="pill active" onclick="filterRides('all', this)">All Rides</button>
+        <button class="pill" onclick="filterRides('recents', this)">Recents</button>
+        <button class="pill" onclick="filterRides('frequents', this)">Frequents</button>
+        <button class="pill" onclick="filterRides('lastmonth', this)">Last Month</button>
+      </div>
+    </div>
+
+    <!-- RIDE CARDS LIST -->
+    <div class="rides-container" id="ridesList">
+      <!-- Dynamic Ride cards render here -->
+    </div>
+
+    <!-- MODAL 1: MANAGE HISTORY -->
+    <div class="modal-overlay" id="manageModal" onclick="closeModalOnOutside(event, 'manageModal')">
+      <div class="modal-content">
+        <div class="modal-header-row">
+          <div class="modal-title">Manage History</div>
+          <button class="close-modal-btn" onclick="closeModal('manageModal')">&times;</button>
+        </div>
+        <div class="modal-options">
+          <button class="option-btn danger" onclick="deleteRides('all')">Delete All Rides</button>
+          <button class="option-btn" onclick="deleteRides('today')">Delete Today</button>
+          <button class="option-btn" onclick="deleteRides('yesterday')">Delete Yesterday</button>
+          <button class="option-btn" onclick="deleteRides('this_month')">Delete This Month</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 2: SET DEFAULT RETENTION -->
+    <div class="modal-overlay" id="defaultModal" onclick="closeModalOnOutside(event, 'defaultModal')">
+      <div class="modal-content">
+        <div class="modal-header-row">
+          <div class="modal-title">Set Auto-Delete Default</div>
+          <button class="close-modal-btn" onclick="closeModal('defaultModal')">&times;</button>
+        </div>
+        <div class="modal-options">
+          <button class="option-btn" onclick="setDefaultRetention('1 Day')">Delete after 1 day</button>
+          <button class="option-btn" onclick="setDefaultRetention('7 Days')">Delete after 7 days</button>
+          <button class="option-btn" onclick="setDefaultRetention('15 Days')">Delete after 15 days</button>
+          <button class="option-btn" onclick="setDefaultRetention('30 Days')">Delete after 30 days</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 3: RE-BOOK RIDE ACTION -->
+    <div class="modal-overlay" id="rebookModal" onclick="closeModalOnOutside(event, 'rebookModal')">
+      <div class="modal-content">
+        <div class="modal-header-row">
+          <div class="modal-title">Book This Ride Again</div>
+          <button class="close-modal-btn" onclick="closeModal('rebookModal')">&times;</button>
+        </div>
+        <div class="rebook-box" id="rebookCardDetails">
+          <!-- Dynamic Re-book Info Inserted via JavaScript -->
+        </div>
+        <button class="primary-btn" onclick="confirmRebook()">Confirm & Book Ride</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- SAMPLE RIDE DATA ---
+    const RIDE_HISTORY_KEY = 'rideHistory';
+    let rides = [];
+
+    function getRideHistory() {
+      try {
+        const raw = localStorage.getItem(RIDE_HISTORY_KEY);
+        if (raw) {
+          return JSON.parse(raw);
+        }
+      } catch (err) {
+        console.warn('Unable to read stored ride history', err);
+      }
+      return null;
+    }
+
+    function saveRideHistory(ridesToSave) {
+      try {
+        localStorage.setItem(RIDE_HISTORY_KEY, JSON.stringify(ridesToSave));
+      } catch (err) {
+        console.warn('Unable to save ride history', err);
+      }
+    }
+
+    function loadRideHistory() {
+      const stored = getRideHistory();
+      if (Array.isArray(stored)) {
+        return stored;
+      }
+      return [];
+    }
+
+    function createRideHistoryEntry(ride) {
+      return {
+        id: Date.now(),
+        rideId: ride.rideId || ride.id,
+        pickupLocation: ride.pickupLocation,
+        dropLocation: ride.dropLocation,
+        from: ride.from,
+        to: ride.to,
+        price: Number(ride.price) || 0,
+        coRiders: Number(ride.coRiders) || 1,
+        bookingDate: new Intl.DateTimeFormat(navigator.language || 'en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: 'numeric',
+          hour12: true
+        }).format(new Date()),
+        category: 'today',
+        isFrequent: true,
+        month: 'current',
+        // No fabricated 4.9 fallback - 0 means the driver hasn't been
+        // rated for this ride yet, not an invented "good" rating.
+        rating: Number(ride.rating) || 0
+      };
+    }
+
+    rides = loadRideHistory();
+
+    async function loadRemoteHistory() {
+      if (!localStorage.getItem('token') || typeof apiGetRideHistory !== 'function') {
+        renderRides();
+        return;
+      }
+      try {
+        const result = await apiGetRideHistory();
+        const remoteBookings = (result.bookings || []).map((booking) => {
+          const ride = booking.ride || {};
+          const bookingDate = new Date(booking.createdAt || ride.departureTime || Date.now());
+          return {
+            id: booking._id,
+            rideId: ride._id,
+            driverId: ride.driver?._id,
+            from: ride.from?.address || 'Pickup location',
+            to: ride.to?.address || 'Drop-off location',
+            price: Number(booking.totalFare ?? booking.seatPrice) || 0,
+            coRiders: Math.max(0, (ride.passengers || []).length - 1),
+            bookingDate: bookingDate.toLocaleString(),
+            category: bookingDate.toDateString() === new Date().toDateString() ? 'today' : 'recent',
+            isFrequent: false,
+            month: bookingDate.getMonth() === new Date().getMonth() ? 'current' : 'last',
+            rating: Number(ride.driver?.rating) || 0,
+            pickupLocation: booking.pickupLocation,
+            dropLocation: booking.dropLocation,
+            bookingStatus: booking.bookingStatus || booking.status,
+          };
+        });
+        // Rides the user drove themselves (as driver) were being fetched
+        // from the backend but never rendered, so a driver's history never
+        // reflected rides they'd completed. Map them the same way as
+        // passenger bookings so they show up alongside them.
+        const remoteDrivenRides = (result.drivenRides || []).map((ride) => {
+          const rideDate = new Date(ride.departureTime || Date.now());
+          return {
+            id: ride._id,
+            rideId: ride._id,
+            from: ride.from?.address || 'Pickup location',
+            to: ride.to?.address || 'Drop-off location',
+            price: Number(ride.pricePerSeat) || 0,
+            coRiders: (ride.passengers || []).length,
+            bookingDate: rideDate.toLocaleString(),
+            category: rideDate.toDateString() === new Date().toDateString() ? 'today' : 'recent',
+            isFrequent: false,
+            month: rideDate.getMonth() === new Date().getMonth() ? 'current' : 'last',
+            rating: 0,
+            bookingStatus: ride.status,
+          };
+        });
+        rides = [...remoteBookings, ...remoteDrivenRides];
+        saveRideHistory(rides);
+        renderRides();
+      } catch (error) {
+        console.warn('Could not load remote ride history; showing cached history.', error);
+        renderRides();
+      }
+    }
+  
+    // CarpoolX is India-only (Aadhaar/PAN driver verification, Indian
+    // mobile numbers) so ride fares are always shown in INR. This used to
+    // guess a currency from geolocation/browser locale and could relabel a
+    // real rupee fare as USD/EUR/etc. depending on the visitor's device -
+    // the amount itself never changed, only the misleading symbol.
+    const currencyContext = {
+      code: 'INR',
+      symbol: '₹',
+      locale: 'en-IN'
+    };
+
+    let currentFilter = 'all';
+    let selectedRideForRebook = null;
+
+    function setCurrencyFromSessionOrLocation() {
+      // No-op kept so the existing call site doesn't need to change.
+      // Currency is always INR for this app.
+    }
+
+    function formatPriceByCurrency(amount) {
+      const value = Number(amount);
+      if (Number.isNaN(value)) return amount;
+      try {
+        return new Intl.NumberFormat(currencyContext.locale, {
+          style: 'currency',
+          currency: currencyContext.code,
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(value);
+      } catch (e) {
+        return `${currencyContext.symbol}${value.toFixed(2)}`;
+      }
+    }
+
+    // --- NAVIGATION TO PROFILE ---
+    function goToProfile() {
+      window.location.href = 'profile2.html';
+    }
+
+    // --- DROPDOWN CONTROL ---
+    function toggleDropdown() {
+      const menu = document.getElementById('dropdownMenu');
+      menu.classList.toggle('active');
+    }
+
+    // Close dropdown on outside click
+    window.addEventListener('click', function(e) {
+      const menuBtn = document.getElementById('menuBtn');
+      const menu = document.getElementById('dropdownMenu');
+      if (!menuBtn.contains(e.target) && !menu.contains(e.target)) {
+        menu.classList.remove('active');
+      }
+    });
+
+    // --- MODAL CONTROLS ---
+    function openModal(id) {
+      document.getElementById('dropdownMenu').classList.remove('active');
+      document.getElementById(id).classList.add('active');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    function closeModalOnOutside(event, id) {
+      if (event.target.id === id) {
+        closeModal(id);
+      }
+    }
+
+    // --- RE-BOOKING FEATURE ---
+    function openRebookModal(rideId) {
+      selectedRideForRebook = rides.find(r => r.id === rideId);
+      if (!selectedRideForRebook) return;
+
+      const detailsContainer = document.getElementById('rebookCardDetails');
+      detailsContainer.innerHTML = `
+        <div class="rebook-route">
+          <div class="point"><span class="dot pickup"></span> <strong>From:</strong> ${selectedRideForRebook.from}</div>
+          <div class="point"><span class="dot drop"></span> <strong>To:</strong> ${selectedRideForRebook.to}</div>
+        </div>
+        <div class="rebook-meta">
+          <span>Est. Fare: <strong>${formatPriceByCurrency(selectedRideForRebook.price)}</strong></span>
+          <span>Carpool: <strong>${selectedRideForRebook.coRiders} Co-passengers</strong></span>
+        </div>
+      `;
+      openModal('rebookModal');
+    }
+
+    async function confirmRebook() {
+      if (!selectedRideForRebook) return;
+      if (!selectedRideForRebook.rideId || !selectedRideForRebook.pickupLocation || !selectedRideForRebook.dropLocation) {
+        alert('This history item does not contain enough location data to re-book.');
+        return;
+      }
+      try {
+        await apiBookRide(selectedRideForRebook.rideId, {
+          pickupLocation: selectedRideForRebook.pickupLocation,
+          dropLocation: selectedRideForRebook.dropLocation,
+          seatsBooked: 1,
+        });
+        closeModal('rebookModal');
+        alert('Ride booked successfully.');
+      } catch (error) {
+        alert(error.message || 'Could not re-book this ride.');
+      }
+    }
+  
+    // --- FILTERING RIDES ---
+    function filterRides(type, element) {
+      currentFilter = type;
+      document.querySelectorAll('.pill').forEach(pill => pill.classList.remove('active'));
+      if(element) element.classList.add('active');
+      renderRides();
+    }
+
+    // --- RENDER RIDES LIST ---
+    function renderRides() {
+      const container = document.getElementById('ridesList');
+      container.innerHTML = '';
+
+      let filteredRides = rides.filter(ride => {
+        if (currentFilter === 'recents') return ride.category === 'today' || ride.category === 'yesterday' || ride.category === 'recent';
+        if (currentFilter === 'frequents') return ride.isFrequent;
+        if (currentFilter === 'lastmonth') return ride.month === 'last';
+        return true; // 'all'
+      });
+
+      if (filteredRides.length === 0) {
+        container.innerHTML = `<div class="empty-state">No ride history available for this category.</div>`;
+        return;
+      }
+
+      filteredRides.forEach(ride => {
+        const card = document.createElement('div');
+        card.className = 'ride-card';
+        card.onclick = () => openRebookModal(ride.id); // Re-book triggered on card click
+
+        card.innerHTML = `
+          <div class="card-top">
+            <div class="carpool-badge">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+              ${ride.coRiders} Co-passengers
+            </div>
+            <div class="ride-price">${formatPriceByCurrency(ride.price)}</div>
+          </div>
+          
+          <div class="route-info">
+            <div class="point">
+              <span class="dot pickup"></span>
+              <span>${ride.from}</span>
+            </div>
+            <div class="point">
+              <span class="dot drop"></span>
+              <span>${ride.to}</span>
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <span class="rebook-tag">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+              Tap to Book Again
+            </span>
+            <span class="booking-time">${ride.bookingDate}</span>
+          </div>
+          ${ride.bookingStatus === 'completed' && ride.rideId && ride.driverId ? `
+          <button class="rebook-tag" style="width:100%; margin-top:8px; padding:8px; border:1px solid var(--border-color); border-radius:10px; background:var(--soft-peach); color:var(--primary-peach); font-weight:700; cursor:pointer;" onclick="event.stopPropagation(); rateThisRide('${ride.rideId}','${ride.id}','${ride.driverId}')">
+            <i class="fa-solid fa-star"></i> Rate This Ride
+          </button>` : ''}
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Sends the person to the rating page for this specific completed ride,
+    // instead of postride.html having to guess which ride to rate.
+    function rateThisRide(rideId, bookingId, driverId) {
+      const params = new URLSearchParams({ rideId, bookingId, targetUserId: driverId });
+      window.location.href = `postride.html?${params.toString()}`;
+    }
+
+    // --- MANAGE HISTORY ACTIONS ---
+    function deleteRides(action) {
+      if (action === 'all') rides = [];
+      else if (action === 'today') rides = rides.filter(r => r.category !== 'today');
+      else if (action === 'yesterday') rides = rides.filter(r => r.category !== 'yesterday');
+      else if (action === 'this_month') rides = rides.filter(r => r.month !== 'current');
+
+      saveRideHistory(rides);
+      closeModal('manageModal');
+      renderRides();
+    }
+
+    // --- SET DEFAULT RETENTION ACTION ---
+    function setDefaultRetention(days) {
+      const statusElement = document.getElementById('retentionStatus');
+      statusElement.innerText = `Auto-delete set to: ${days}`;
+      closeModal('defaultModal');
+    }
+
+    // Initial Load
+    const historyApiScript = document.createElement('script');
+    historyApiScript.src = 'api-client.js';
+    historyApiScript.onload = () => loadRemoteHistory();
+    document.head.appendChild(historyApiScript);
+    setCurrencyFromSessionOrLocation();
+  </script>
+</body>
+</html>

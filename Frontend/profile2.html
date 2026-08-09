@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Profile - Shared Mobility</title>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --bg-color: #f4f7f6;
+      --card-bg: #ffffff;
+      /* Use the logout/danger color as the primary accent to make green icons peach */
+      --danger: #ef4444;
+      --primary: var(--danger); /* Peach accent (matches Log Out color) */
+      --primary-hover: #dc3b2b;
+      --text-main: #1f2937;
+      --text-muted: #6b7280;
+      --border-color: #e5e7eb;
+      --shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 0px;
+    }
+
+    .profile-card {
+      background: var(--card-bg);
+      width: 100%;
+      max-width: 100%;
+      min-height: 100vh;
+      border-radius: 0;
+      box-shadow: none;
+      border: none;
+      padding: 0px;
+      position: relative;
+    }
+
+    /* Profile Header & Avatar controls */
+    .avatar-wrapper {
+      position: relative;
+      width: 110px;
+      height: 110px;
+      margin: 0 auto 16px auto;
+    }
+
+    .avatar-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 4px solid var(--card-bg);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .avatar-actions {
+      position: absolute;
+      bottom: 2px;
+      right: -8px;
+      display: flex;
+      gap: 6px;
+    }
+
+    .action-circle-btn {
+      background: #fef2f2;
+      color: var(--danger);
+      border: 1px solid #fee2e2;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      transition: transform 0.2s, background-color 0.2s;
+    }
+
+    .action-circle-btn:hover {
+      background: #fde8e8;
+      transform: scale(1.05);
+    }
+
+    /* Hidden file input for gallery/camera */
+    #image-file-input {
+      display: none;
+    }
+
+    .user-heading {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .user-name {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .user-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      background-color: #fff2f2; /* light peach background */
+      color: var(--primary);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    /* Shared Commute Impact */
+    .sharing-stats {
+      display: flex;
+      justify-content: space-between;
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .stat-item .stat-value {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .stat-item .stat-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 2px;
+    }
+
+    /* Details List */
+    .details-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .detail-item {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      border-radius: 10px;
+      background-color: #ffffff;
+      border: 1px solid var(--border-color);
+      gap: 12px;
+    }
+
+    .detail-item.clickable {
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .detail-item.clickable:hover {
+      background-color: #f9fafb;
+    }
+
+    .icon-box {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background-color: #f3f4f6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-main);
+    }
+
+    .icon-box.sos {
+      background-color: #fef2f2;
+      color: var(--danger);
+    }
+
+    .detail-content {
+      flex: 1;
+    }
+
+    .detail-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .detail-value {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .action-arrow {
+      color: #9ca3af;
+    }
+
+    /* Action Buttons */
+    .actions-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-item {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      background: transparent;
+      color: var(--text-main);
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-item.logout {
+      color: var(--danger);
+      border-color: #fee2e2;
+      background-color: #fef2f2;
+    }
+
+    .btn-item.logout:hover {
+      background-color: #fde8e8;
+    }
+
+    .btn-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Modals base styling */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 100;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: white;
+      width: 90%;
+      max-width: 380px;
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+
+    .modal-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      outline: none;
+    }
+
+    .form-group input:focus {
+      border-color: var(--primary);
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .modal-btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .modal-btn.cancel {
+      background: #f3f4f6;
+      color: var(--text-main);
+    }
+
+    .modal-btn.save {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* SOS Toggle Modal Choices */
+    .sos-options {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .sos-opt-btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px;
+      border: 2px solid var(--border-color);
+      background: #ffffff;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .sos-opt-btn.on.active {
+      background: #fff2f2; /* light peach */
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .sos-opt-btn.off.active {
+      background: #fef2f2;
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="profile-card">
+    <!-- Avatar Section -->
+    <div class="avatar-wrapper">
+      <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300" alt="Profile" class="avatar-img" id="user-avatar">
+      
+      <div class="avatar-actions">
+        <!-- Hidden input triggerable for Gallery / Camera -->
+        <input type="file" id="image-file-input" accept="image/*" capture="environment">
+        
+        <!-- Camera Button -->
+        <button class="action-circle-btn" id="trigger-camera" title="Change Photo (Camera/Gallery)">
+          <i data-lucide="camera" style="width:16px; height:16px;"></i>
+        </button>
+
+        <!-- Edit Profile Button Next to Camera -->
+        <button class="action-circle-btn" id="open-edit-modal" title="Edit Profile Details">
+          <i data-lucide="pencil" style="width:16px; height:16px;"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Name & Status -->
+    <div class="user-heading">
+      <h2 class="user-name" id="display-name">Loading…</h2>
+      <span class="user-badge">Frequent Sharer</span>
+    </div>
+
+    <!-- Shared Commute Impact -->
+    <div class="sharing-stats">
+      <div class="stat-item">
+        <div class="stat-value" id="stat-shared-rides">0</div>
+        <div class="stat-label">Shared Rides</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="stat-co2-saved">0 kg</div>
+        <div class="stat-label">CO₂ Saved</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="stat-rating">4.9 ★</div>
+        <div class="stat-label">Co-Rider Rating</div>
+      </div>
+    </div>
+
+    <!-- User Information -->
+    <div class="details-group">
+      <div class="detail-item">
+        <div class="icon-box"><i data-lucide="phone" style="width:18px;"></i></div>
+        <div class="detail-content">
+          <div class="detail-label">Phone Number</div>
+          <div class="detail-value" id="display-phone">Loading…</div>
+        </div>
+      </div>
+
+      <div class="detail-item">
+        <div class="icon-box"><i data-lucide="mail" style="width:18px;"></i></div>
+        <div class="detail-content">
+          <div class="detail-label">Email Address</div>
+          <div class="detail-value" id="display-email">Loading…</div>
+        </div>
+      </div>
+ 
+      <div class="detail-item">
+        <div class="icon-box"><i data-lucide="credit-card" style="width:18px;"></i></div>
+        <div class="detail-content">
+          <div class="detail-label">Local Currency</div>
+          <div class="detail-value" id="display-currency">₹ (INR)</div>
+        </div>
+      </div>
+ 
+      <div class="detail-item">
+        <div class="icon-box"><i data-lucide="map-pin" style="width:18px;"></i></div>
+        <div class="detail-content">
+          <div class="detail-label">Country</div>
+          <div class="detail-value" id="display-country">India</div>
+        </div>
+      </div>
+ 
+      <div class="detail-item">
+        <div class="icon-box"><i data-lucide="users" style="width:18px;"></i></div>
+        <div class="detail-content">
+          <div class="detail-label">Emergency Contacts</div>
+          <div class="detail-value" id="display-emergency">2 Contacts Added</div>
+        </div>
+      </div>
+
+      <!-- SOS Settings Clickable Card -->
+      <div class="detail-item clickable" id="open-sos-modal">
+        <div class="icon-box sos"><i data-lucide="shield-alert" style="width:18px;"></i></div>
+        <div class="detail-content">
+          <div class="detail-label">SOS Settings</div>
+          <div class="detail-value" id="display-sos-status">Auto-alert: ON</div>
+        </div>
+        <i data-lucide="chevron-right" class="action-arrow" style="width:18px;"></i>
+      </div>
+    </div>
+
+    <!-- Quick Options (App Settings Removed) -->
+    <div class="actions-list">
+      <button class="btn-item logout" id="logout-button" type="button">
+        <div class="btn-left">
+          <i data-lucide="log-out" style="width:18px;"></i>
+          <span>Log Out</span>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Edit Details Modal -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal">
+      <div class="modal-title">Edit Profile Details</div>
+      
+      <div class="form-group">
+        <label for="input-username">Username</label>
+        <input type="text" id="input-username" placeholder="Your full name">
+      </div>
+      
+      <div class="form-group">
+        <label for="input-phone">Phone Number</label>
+        <input type="tel" id="input-phone" inputmode="numeric" maxlength="10" placeholder="10-digit mobile number">
+      </div>
+
+      <div class="form-group">
+        <label for="input-email">Email Address</label>
+        <input type="email" id="input-email" placeholder="you@example.com">
+      </div>
+
+      <div class="form-group">
+        <label for="input-emergency">Emergency Contacts Added</label>
+        <input type="number" id="input-emergency" placeholder="0" min="0">
+      </div>
+
+      <div class="form-group">
+        <label for="input-password">New Password</label>
+        <input type="password" id="input-password" placeholder="Enter new password">
+      </div>
+
+      <div class="modal-actions">
+        <button class="modal-btn cancel" id="close-modal">Cancel</button>
+        <button class="modal-btn save" id="save-profile">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SOS Modal -->
+  <div class="modal-overlay" id="sos-modal">
+    <div class="modal">
+      <div class="modal-title">SOS Auto-Alert Settings</div>
+      <p style="font-size: 0.85rem; color: var(--text-muted);">Set auto-alert functionality for emergency situations during rides.</p>
+      
+      <div class="sos-options">
+        <button class="sos-opt-btn on active" id="sos-opt-on">ON</button>
+        <button class="sos-opt-btn off" id="sos-opt-off">OFF</button>
+      </div>
+
+      <div class="modal-actions">
+        <button class="modal-btn cancel" id="close-sos-modal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="form-utils.js"></script>
+  <script src="api-client.js"></script>
+  <script src="profile2.js"></script>
+</body>
+</html>

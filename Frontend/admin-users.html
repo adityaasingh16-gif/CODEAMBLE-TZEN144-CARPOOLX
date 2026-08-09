@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manage Users (Admin) - CarpoolX</title>
+<link rel="stylesheet" href="login.css">
+<style>
+  .wrap { max-width: 860px; margin: 40px auto; padding: 0px; }
+  @media (max-width: 600px) {
+    body { padding: 0px; margin: 0px; }
+    .wrap { margin: 10px auto; padding: 0px; }
+  }
+  h2 { margin-bottom: 4px; }
+  .subtitle { color: var(--muted); font-size: 0.85rem; margin-bottom: 20px; }
+  .toolbar { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+  .toolbar input, .toolbar select {
+    padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border);
+    background: #fff; font-size: 0.85rem;
+  }
+  .toolbar input { flex: 1; min-width: 200px; }
+  .nav-link { font-size: 0.8rem; color: var(--muted); text-decoration: none; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
+  th, td { text-align: left; padding: 10px 12px; font-size: 0.82rem; border-bottom: 1px solid var(--border); }
+  th { background: var(--accent-soft); color: var(--text); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; }
+  .pill-driver { background: #e0ecff; color: #1a4fa0; }
+  .pill-passenger { background: #eee; color: #555; }
+  .pill-active { background: #d4edda; color: #1e7e34; }
+  .pill-suspended { background: #fff3cd; color: #8a6d1a; }
+  .pill-blocked { background: #f8d7da; color: #a12a2a; }
+  .status-select { padding: 5px 8px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.75rem; }
+  .empty-msg { text-align: center; color: var(--muted); padding: 30px; font-size: 0.9rem; }
+  .denied { max-width: 480px; margin: 80px auto; text-align: center; }
+  .count-note { font-size: 0.78rem; color: var(--muted); margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap" id="pageWrap">
+  <a class="nav-link" href="admin-verification.html">Driver document review &rarr;</a>
+  <h2>Manage Users</h2>
+  <p class="subtitle">Search and manage every passenger and driver account.</p>
+
+  <div class="toolbar">
+    <input type="text" id="searchInput" placeholder="Search by name, email, or phone...">
+    <select id="roleFilter">
+      <option value="">All roles</option>
+      <option value="driver">Drivers</option>
+      <option value="passenger">Passengers</option>
+    </select>
+  </div>
+
+  <p class="count-note" id="countNote"></p>
+  <div id="userTableWrap"></div>
+</div>
+
+<script src="api-client.js"></script>
+<script>
+  if (!localStorage.getItem('token')) {
+    window.location.href = 'login.html';
+  }
+
+  let debounceTimer = null;
+
+  function debouncedSearch() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(loadUsers, 300);
+  }
+
+  document.getElementById('searchInput').addEventListener('input', debouncedSearch);
+  document.getElementById('roleFilter').addEventListener('change', loadUsers);
+
+  async function loadUsers() {
+    const wrap = document.getElementById('userTableWrap');
+    const search = document.getElementById('searchInput').value.trim();
+    const role = document.getElementById('roleFilter').value;
+
+    try {
+      const users = await apiListAllUsers(search, role);
+      document.getElementById('countNote').innerText = `${users.length} account(s) found`;
+
+      if (!users.length) {
+        wrap.innerHTML = '<p class="empty-msg">No matching users.</p>';
+        return;
+      }
+
+      wrap.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th><th>Email</th><th>Phone</th><th>Role</th>
+              <th>Verification</th><th>Status</th><th>Joined</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${users.map(u => `
+              <tr>
+                <td>${u.name}</td>
+                <td>${u.email}</td>
+                <td>${u.phone}</td>
+                <td><span class="pill ${u.isDriver ? 'pill-driver' : 'pill-passenger'}">${u.isDriver ? 'Driver' : 'Passenger'}</span></td>
+                <td>${u.isDriver ? (u.verificationStatus || 'not_submitted') : '—'}</td>
+                <td>
+                  <select class="status-select" onchange="changeStatus('${u._id}', this.value)">
+                    <option value="active" ${u.accountStatus === 'active' ? 'selected' : ''}>Active</option>
+                    <option value="suspended" ${u.accountStatus === 'suspended' ? 'selected' : ''}>Suspended</option>
+                    <option value="blocked" ${u.accountStatus === 'blocked' ? 'selected' : ''}>Blocked</option>
+                  </select>
+                </td>
+                <td>${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    } catch (error) {
+      if (error.message && error.message.includes('Admin access required')) {
+        document.getElementById('pageWrap').innerHTML = `
+          <div class="denied">
+            <h2>Admins only</h2>
+            <p>Your account doesn't have admin access. Ask whoever manages the database to set
+            <code>isAdmin: true</code> on your user document in MongoDB Atlas.</p>
+          </div>`;
+      } else {
+        wrap.innerHTML = `<p class="empty-msg">${error.message}</p>`;
+      }
+    }
+  }
+
+  async function changeStatus(userId, status) {
+    try {
+      await apiUpdateUserStatus(userId, status);
+    } catch (error) {
+      alert(error.message || 'Could not update this account.');
+      loadUsers(); // revert the dropdown to the real value
+    }
+  }
+
+  loadUsers();
+</script>
+</body>
+</html>

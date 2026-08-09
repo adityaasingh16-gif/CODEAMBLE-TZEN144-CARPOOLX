@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Driver Verification (Admin) - CarpoolX</title>
+<link rel="stylesheet" href="login.css">
+<style>
+  .wrap { max-width: 760px; margin: 40px auto; padding: 0px; }
+  @media (max-width: 600px) {
+    body { padding: 0px; margin: 0px; }
+    .wrap { margin: 10px auto; padding: 0px; }
+  }
+  h2 { margin-bottom: 4px; }
+  .subtitle { color: var(--muted); font-size: 0.85rem; margin-bottom: 20px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 18px; }
+  .tabs button {
+    padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border);
+    background: #fff; cursor: pointer; font-size: 0.8rem;
+  }
+  .tabs button.active { background: var(--accent-strong); color: #fff; border-color: var(--accent-strong); }
+  .driver-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+    padding: 18px 20px; margin-bottom: 14px; box-shadow: var(--shadow);
+  }
+  .driver-card h4 { margin: 0 0 6px; }
+  .driver-card .meta { font-size: 0.8rem; color: var(--muted); margin-bottom: 10px; }
+  .driver-card .detail-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px;
+    font-size: 0.82rem; margin-bottom: 12px;
+  }
+  .actions { display: flex; gap: 10px; }
+  .actions button {
+    flex: 1; padding: 9px; border-radius: 10px; border: none; cursor: pointer; font-weight: 600; font-size: 0.85rem;
+  }
+  .approve-btn { background: #1e7e34; color: #fff; }
+  .reject-btn { background: #a12a2a; color: #fff; }
+  .empty-msg { text-align: center; color: var(--muted); padding: 30px; font-size: 0.9rem; }
+  .denied { max-width: 480px; margin: 80px auto; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap" id="pageWrap">
+  <a class="nav-link" href="admin-users.html" style="display:inline-block; margin-bottom:10px; font-size:0.8rem; color:var(--muted); text-decoration:none;">&larr; All users</a>
+  <h2>Driver Verification</h2>
+  <p class="subtitle">Review vehicle and license details submitted by drivers.</p>
+
+  <div class="tabs">
+    <button class="active" data-status="pending" onclick="setTab('pending', this)">Pending</button>
+    <button data-status="approved" onclick="setTab('approved', this)">Approved</button>
+    <button data-status="rejected" onclick="setTab('rejected', this)">Rejected</button>
+    <button data-status="" onclick="setTab('', this)">All Drivers</button>
+  </div>
+
+  <div id="driverList"></div>
+</div>
+
+<script src="api-client.js"></script>
+<script>
+  if (!localStorage.getItem('token')) {
+    window.location.href = 'login.html';
+  }
+
+  let currentTab = 'pending';
+
+  function setTab(status, btnEl) {
+    currentTab = status;
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+    btnEl.classList.add('active');
+    loadDrivers();
+  }
+
+  async function loadDrivers() {
+    const list = document.getElementById('driverList');
+    list.innerHTML = '<p class="empty-msg">Loading...</p>';
+
+    try {
+      const drivers = await apiListDriversForReview(currentTab);
+
+      if (!drivers.length) {
+        list.innerHTML = '<p class="empty-msg">No drivers in this category.</p>';
+        return;
+      }
+
+      list.innerHTML = drivers.map(d => {
+        const v = d.vehicleDetails || {};
+        const dl = d.drivingLicense || {};
+        return `
+        <div class="driver-card">
+          <h4>${d.name}</h4>
+          <div class="meta">${d.email} • ${d.phone}</div>
+          <div class="detail-grid">
+            <div><strong>Vehicle:</strong> ${v.make || '—'} ${v.model || ''}</div>
+            <div><strong>Plate:</strong> ${v.plateNumber || '—'}</div>
+            <div><strong>RC No:</strong> ${v.registrationNumber || '—'}</div>
+            <div><strong>Fuel:</strong> ${v.fuelType || '—'}</div>
+            <div><strong>License No:</strong> ${dl.number || '—'}</div>
+            <div><strong>License Expiry:</strong> ${dl.expiryDate ? new Date(dl.expiryDate).toLocaleDateString() : '—'}</div>
+          </div>
+          ${d.verificationStatus === 'pending' || currentTab === '' ? `
+            <div class="actions">
+              <button class="approve-btn" onclick="review('${d._id}', true)">Approve</button>
+              <button class="reject-btn" onclick="review('${d._id}', false)">Reject</button>
+            </div>
+          ` : ''}
+        </div>`;
+      }).join('');
+    } catch (error) {
+      if (error.message && error.message.includes('Admin access required')) {
+        document.getElementById('pageWrap').innerHTML = `
+          <div class="denied">
+            <h2>Admins only</h2>
+            <p>Your account doesn't have admin access. Ask whoever manages the database to set
+            <code>isAdmin: true</code> on your user document in MongoDB Atlas.</p>
+          </div>`;
+      } else {
+        list.innerHTML = `<p class="empty-msg">${error.message}</p>`;
+      }
+    }
+  }
+
+  async function review(driverId, approve) {
+    let note = '';
+    if (!approve) {
+      note = prompt('Reason for rejection (shown to the driver):') || '';
+      if (note === null) return;
+    }
+    try {
+      await apiReviewDriver(driverId, approve, note);
+      loadDrivers();
+    } catch (error) {
+      alert(error.message || 'Could not update this driver.');
+    }
+  }
+
+  loadDrivers();
+</script>
+</body>
+</html>

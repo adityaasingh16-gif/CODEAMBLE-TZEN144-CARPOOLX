@@ -1,0 +1,2710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CarpoolX - Modern Ride Sharing & History</title>
+  
+  <!-- Google Fonts & FontAwesome Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Leaflet CSS (OpenStreetMap Engine) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    /* --- COLOR PALETTE & VARIABLES (Light Mode Default) --- */
+    :root {
+      --bg-peach: #FFFAF6;
+      --bg-gradient: linear-gradient(180deg, #FFFFFF 0%, #FFF5F2 100%);
+      --card-white: #FFFFFF;
+      --primary-peach: #FF8A65;
+      --primary-peach-hover: #FF7043;
+      --soft-peach: #FFF0EB;
+      --accent-peach: #FFD2C4;
+      --text-dark: #2C2C2C;
+      --text-muted: #7C7C7C;
+      --border-color: #F0E6E0;
+      --shadow-sm: 0 4px 15px rgba(255, 138, 101, 0.08);
+      --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.12);
+      --shadow-soft: 0 12px 30px -8px rgba(255, 107, 74, 0.12), 0 4px 12px rgba(0,0,0,0.03);
+      --peach-glow: rgba(255, 138, 101, 0.15);
+      --icon-stroke: #2C2C2C;
+      --danger: #ef4444;
+      --radius: 20px;
+    }
+
+    /* --- DARK MODE OVERRIDES --- */
+    body.dark-mode {
+      --bg-peach: #1A1615;
+      --bg-gradient: linear-gradient(180deg, #1A1615 0%, #24201E 100%);
+      --card-white: #24201E;
+      --soft-peach: #2E2421;
+      --accent-peach: #4A332C;
+      --text-dark: #F5F0EE;
+      --text-muted: #A39590;
+      --border-color: #332B28;
+      --shadow-soft: 0 12px 30px -8px rgba(0, 0, 0, 0.5);
+      --peach-glow: rgba(255, 138, 101, 0.3);
+      --icon-stroke: #F5F0EE;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+    }
+
+    body {
+      background-color: #EFEFEF;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* Full Viewport Frame */
+    .app-container {
+      width: 100vw;
+      max-width: 100vw;
+      height: 100vh;
+      max-height: 100vh;
+      background-color: var(--bg-peach);
+      border-radius: 0;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ==========================================
+       VIEW MANAGEMENT (HOME MAP vs HISTORY)
+    ========================================== */
+    .app-view {
+      display: none;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .app-view.active-view {
+      display: flex;
+    }
+
+    /* --- TOP SECTION (Header & Search Controls) --- */
+    .top-section {
+      background: var(--card-white);
+      padding: 18px 16px 14px 16px;
+      border-bottom: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+      z-index: 10;
+    }
+
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .icon-btn {
+      background: var(--soft-peach);
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      color: var(--primary-peach-hover);
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .icon-btn:hover {
+      background: var(--primary-peach);
+      color: #FFF;
+    }
+
+    .icon-btn.circle {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border-radius: 50%;
+      background: var(--soft-peach);
+      color: var(--primary-peach);
+    }
+    .icon-btn.circle:hover { background: var(--accent-peach); }
+
+    .logo-text {
+      font-weight: 800;
+      font-size: 1.25rem;
+      letter-spacing: 0.5px;
+      color: var(--text-dark);
+      cursor: pointer;
+    }
+
+    .logo-text span {
+      color: var(--primary-peach);
+    }
+
+    /* Route Inputs */
+    .route-inputs {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 14px;
+      font-size: 0.9rem;
+    }
+
+    .input-icon.boarding { color: #4CAF50; }
+    .input-icon.dropping { color: var(--primary-peach); }
+
+    .route-input {
+      width: 100%;
+      padding: 10px 40px 10px 38px;
+      background: var(--soft-peach);
+      border: 1px solid transparent;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      color: var(--text-dark);
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .route-input:focus {
+      border-color: var(--primary-peach);
+      background: var(--card-white);
+    }
+
+    .swap-btn {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 32px;
+      height: 32px;
+      background: var(--card-white);
+      border: 1px solid var(--border-color);
+      border-radius: 50%;
+      color: var(--primary-peach);
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Seat Picker */
+    .carpool-options {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--border-color);
+    }
+
+    .seat-picker {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .seat-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: var(--card-white);
+      cursor: pointer;
+      font-weight: bold;
+      color: var(--text-dark);
+    }
+
+    .search-rides-btn {
+      background: var(--primary-peach);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* --- MIDDLE SECTION (OPENSTREETMAP ENGINE) --- */
+    .middle-map-container {
+      flex: 1;
+      position: relative;
+      margin: 12px;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 2px solid var(--border-color);
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Floating rides overlay inside middle map area */
+    .rides-overlay {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      right: 10px;
+      z-index: 400;
+      background: var(--card-white);
+      backdrop-filter: blur(8px);
+      border-radius: 14px;
+      padding: 10px;
+      max-height: 110px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+    }
+
+    .mini-ride-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px;
+      background: var(--soft-peach);
+      border-radius: 10px;
+      margin-bottom: 6px;
+    }
+
+    .mini-ride-card:last-child { margin-bottom: 0; }
+
+    .driver-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .driver-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .driver-details h4 {
+      font-size: 0.78rem;
+      color: var(--text-dark);
+    }
+
+    .driver-details p {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+    }
+
+    .price-tag {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--primary-peach-hover);
+    }
+
+    /* --- BOTTOM SECTION (Navigation Bar) --- */
+    .bottom-nav {
+      height: 65px;
+      background: var(--card-white);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      border-top: 1px solid var(--border-color);
+      box-shadow: 0 -4px 15px rgba(0,0,0,0.03);
+      z-index: 10;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      text-decoration: none;
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .nav-item i { font-size: 1.15rem; }
+
+    .nav-item.active {
+      color: var(--primary-peach);
+    }
+
+    /* ==========================================
+       RIDE HISTORY PAGE STYLES (FROM SOURCE 1)
+    ========================================== */
+    .history-header {
+      padding: 18px 20px 14px;
+      background: var(--card-white);
+      position: relative;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .history-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand-title {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(45deg, #FF6B4A, #FF8E53);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      cursor: pointer;
+    }
+
+    .page-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 1px;
+      font-weight: 500;
+    }
+
+    .user-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+    }
+
+    .profile-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--soft-peach);
+      color: var(--primary-peach);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 15px;
+      border: 2px solid var(--accent-peach);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .profile-btn:hover {
+      transform: scale(1.06);
+      box-shadow: 0 4px 12px var(--peach-glow);
+    }
+
+    .menu-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .menu-btn:hover {
+      background: var(--soft-peach);
+    }
+
+    /* --- DROPDOWN MENU --- */
+    .dropdown-menu {
+      position: absolute;
+      top: 48px;
+      right: 0;
+      background: var(--card-white);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      box-shadow: var(--shadow-soft);
+      width: 190px;
+      display: none;
+      flex-direction: column;
+      z-index: 100;
+      overflow: hidden;
+    }
+
+    .dropdown-menu.active {
+      display: flex;
+    }
+
+    .dropdown-item {
+      padding: 12px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-dark);
+      background: none;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: background 0.2s;
+    }
+
+    .dropdown-item:hover {
+      background: var(--soft-peach);
+      color: var(--primary-peach);
+    }
+
+    /* RETENTION BADGE */
+    .retention-badge {
+      font-size: 11px;
+      background: var(--soft-peach);
+      color: var(--primary-peach-hover);
+      padding: 6px 14px;
+      border-radius: 20px;
+      margin: 12px 16px 0 16px;
+      display: inline-block;
+      font-weight: 700;
+      border: 1px dashed var(--accent-peach);
+    }
+
+    /* HORIZONTAL FILTER TABS */
+    .filter-wrapper {
+      padding: 12px 16px 8px;
+      overflow-x: auto;
+      white-space: nowrap;
+      scrollbar-width: none;
+    }
+
+    .filter-wrapper::-webkit-scrollbar {
+      display: none;
+    }
+
+    .filter-pills {
+      display: inline-flex;
+      gap: 8px;
+    }
+
+    .pill {
+      padding: 7px 16px;
+      border-radius: 25px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--border-color);
+      background: var(--card-white);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .pill.active {
+      background: var(--primary-peach);
+      color: #FFFFFF;
+      border-color: var(--primary-peach);
+      box-shadow: 0 4px 14px var(--peach-glow);
+    }
+
+    /* RIDES LIST SECTION */
+    .rides-container {
+      padding: 10px 16px 20px;
+      flex-grow: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .history-ride-card {
+      background: var(--card-white);
+      border-radius: var(--radius);
+      padding: 16px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-soft);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      cursor: pointer;
+    }
+
+    .history-ride-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent-peach);
+      box-shadow: 0 12px 24px -8px rgba(255, 107, 74, 0.2);
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px dashed var(--border-color);
+    }
+
+    .carpool-badge {
+      background: var(--soft-peach);
+      color: var(--primary-peach-hover);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .ride-price {
+      font-weight: 800;
+      font-size: 15px;
+      color: var(--text-dark);
+    }
+
+    .route-info {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .point {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot.pickup { background: #10B981; }
+    .dot.drop { background: var(--primary-peach); }
+
+    .card-footer {
+      background: var(--soft-peach);
+      margin: 12px -16px -16px -16px;
+      padding: 10px 16px;
+      border-bottom-left-radius: var(--radius);
+      border-bottom-right-radius: var(--radius);
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .rebook-tag {
+      color: var(--primary-peach-hover);
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .booking-time {
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+
+    /* RE-BOOK DETAILS BOX */
+    .rebook-box {
+      background: var(--soft-peach);
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid var(--accent-peach);
+      margin-bottom: 20px;
+    }
+
+    .rebook-route {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .rebook-meta {
+      display: flex;
+      justify-content: space-between;
+      padding-top: 10px;
+      border-top: 1px solid var(--accent-peach);
+      font-size: 13px;
+      color: var(--text-dark);
+    }
+
+    .primary-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--primary-peach);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 6px 16px var(--peach-glow);
+      transition: background 0.2s;
+    }
+
+    .primary-btn:hover {
+      background: var(--primary-peach-hover);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* --- DRAWER OVERLAY & MULTI-PANEL SIDEBAR DRAWER --- */
+    .drawer-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 500;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    .drawer-overlay.active { opacity: 1; visibility: visible; }
+
+    .sidebar-drawer {
+      position: absolute;
+      top: 0; left: 0; bottom: 0;
+      width: 84%;
+      max-width: 336px;
+      background: var(--card-white);
+      z-index: 600;
+      transform: translateX(-100%);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 16px 0 40px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+    .sidebar-drawer.active { transform: translateX(0); }
+
+    /* CONTAINER FOR 4 SLIDING PANELS */
+    .drawer-view-wrapper {
+      display: flex;
+      width: 400%;
+      height: 100%;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .drawer-view-wrapper.show-settings { transform: translateX(-25%); }
+    .drawer-view-wrapper.show-about { transform: translateX(-50%); }
+    .drawer-view-wrapper.show-support { transform: translateX(-75%); }
+
+    .drawer-panel {
+      width: 25%;
+      height: 100%;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      padding: 16px 20px 20px;
+      scrollbar-width: none;
+    }
+    .drawer-panel::-webkit-scrollbar { display: none; }
+
+    .drawer-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .drawer-brand {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      background: linear-gradient(45deg, #FF6B4A, #FF8E53);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .drawer-title-with-back {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .drawer-title-text {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--text-dark);
+    }
+
+    /* Profile Block */
+    .drawer-profile {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 4px 18px;
+      border-bottom: 1px dashed var(--border-color);
+      margin-bottom: 10px;
+      background: none;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+      border-radius: 14px;
+      border-top: none; border-left: none; border-right: none;
+    }
+    .drawer-profile:hover { background: var(--soft-peach); }
+
+    .drawer-avatar {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: var(--soft-peach);
+      color: var(--primary-peach);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+      border: 2px solid var(--accent-peach);
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .drawer-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .drawer-profile-info { flex-grow: 1; min-width: 0; }
+
+    .drawer-profile-name {
+      font-size: 16.5px;
+      font-weight: 800;
+      color: var(--text-dark);
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .drawer-profile-phone {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    /* Menu Items */
+    .drawer-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 8px;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+    }
+    .drawer-menu-item:hover { background: var(--soft-peach); }
+
+    .menu-icon-circle {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: var(--soft-peach);
+      color: var(--primary-peach);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .menu-item-label {
+      flex-grow: 1;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text-dark);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .menu-item-sublabel {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-top: 1px;
+    }
+
+    .menu-item-chevron { color: var(--text-muted); flex-shrink: 0; }
+
+    /* Toggle Controls */
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: var(--border-color);
+      transition: .3s;
+      border-radius: 24px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+    input:checked + .slider { background-color: var(--primary-peach); }
+    input:checked + .slider:before { transform: translateX(20px); }
+
+    .setting-select {
+      background: var(--soft-peach);
+      color: var(--text-dark);
+      border: 1px solid var(--accent-peach);
+      padding: 6px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .settings-section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      font-weight: 800;
+      margin: 16px 8px 6px;
+    }
+
+    /* Developers List Styling */
+    .developer-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .developer-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      background: var(--soft-peach);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+    }
+
+    .developer-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--primary-peach);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .developer-name {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-dark);
+    }
+
+    /* FAQ Item Styles */
+    .faq-item {
+      margin-bottom: 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 10px;
+      background: var(--soft-peach);
+    }
+    .faq-q {
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--text-dark);
+      margin-bottom: 4px;
+    }
+    .faq-a {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* Live Chat Box */
+    .chat-box {
+      height: 180px;
+      background: var(--bg-peach);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 10px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .chat-msg {
+      max-width: 80%;
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 0.78rem;
+    }
+    .chat-msg.bot {
+      background: var(--soft-peach);
+      color: var(--text-dark);
+      align-self: flex-start;
+      border-bottom-left-radius: 2px;
+    }
+    .chat-msg.user {
+      background: var(--primary-peach);
+      color: white;
+      align-self: flex-end;
+      border-bottom-right-radius: 2px;
+    }
+
+    /* Footer */
+    .drawer-footer {
+      margin-top: auto;
+      padding-top: 16px;
+    }
+
+    .logout-btn {
+      width: 100%;
+      padding: 13px;
+      border-radius: 14px;
+      border: 1.5px solid #FEE2E2;
+      background: #FEF2F2;
+      color: #EF4444;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+    .logout-btn:hover { background: #FEE2E2; }
+
+    .app-version-text {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-top: 12px;
+    }
+
+    /* =========================================================
+       PROFILE & MODAL VIEWS
+    ========================================================= */
+    .profile-overlay {
+      position: absolute;
+      inset: 0;
+      background: var(--card-white);
+      z-index: 700;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .profile-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+      transform: translateY(0);
+    }
+
+    .profile-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .profile-header-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--text-dark);
+    }
+
+    /* Avatar controls */
+    .avatar-wrapper {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 12px auto;
+    }
+
+    .avatar-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--primary-peach);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .avatar-actions {
+      position: absolute;
+      bottom: -2px;
+      right: -6px;
+      display: flex;
+      gap: 6px;
+    }
+
+    .action-circle-btn {
+      background: var(--primary-peach);
+      color: white;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      transition: transform 0.2s, background-color 0.2s;
+    }
+
+    .action-circle-btn:hover {
+      background: var(--primary-peach-hover);
+      transform: scale(1.05);
+    }
+
+    #image-file-input { display: none; }
+
+    .user-heading {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .user-name {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-dark);
+    }
+
+    .user-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      background-color: var(--soft-peach);
+      color: var(--primary-peach-hover);
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    /* Impact Stats */
+    .sharing-stats {
+      display: flex;
+      justify-content: space-between;
+      background: var(--bg-peach);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .stat-item .stat-value {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--primary-peach);
+    }
+
+    .stat-item .stat-label {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 2px;
+    }
+
+    /* Details List */
+    .details-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .detail-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background-color: var(--card-white);
+      border: 1px solid var(--border-color);
+      gap: 12px;
+    }
+
+    .detail-item.clickable {
+      cursor: pointer;
+    }
+
+    .detail-item.clickable:hover {
+      background-color: var(--soft-peach);
+    }
+
+    .icon-box {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background-color: var(--soft-peach);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary-peach);
+    }
+
+    .icon-box.sos {
+      background-color: #fef2f2;
+      color: var(--danger);
+    }
+
+    .detail-content { flex: 1; }
+
+    .detail-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .detail-value {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+
+    /* MODAL OVERLAYS */
+    .modal-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(35, 30, 28, 0.45);
+      backdrop-filter: blur(5px);
+      display: none;
+      justify-content: center;
+      align-items: flex-end;
+      z-index: 1000;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--card-white);
+      width: 100%;
+      border-top-left-radius: 28px;
+      border-top-right-radius: 28px;
+      padding: 24px;
+      animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .modal-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .modal-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--text-dark);
+    }
+
+    .close-modal-btn {
+      background: var(--soft-peach);
+      border: none;
+      color: var(--primary-peach);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .option-btn {
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid var(--border-color);
+      background: var(--card-white);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-dark);
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.2s;
+    }
+
+    .option-btn.danger {
+      color: #EF4444;
+      border-color: #FEE2E2;
+      background: #FEF2F2;
+    }
+
+    .option-btn:hover {
+      background: var(--soft-peach);
+    }
+
+    /* Standard Dialog Modal Style */
+    .modal {
+      background: var(--card-white);
+      width: 90%;
+      max-width: 360px;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      max-height: 85vh;
+      overflow-y: auto;
+      margin: auto;
+    }
+
+    .form-group { margin-bottom: 10px; }
+
+    .form-group label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-peach);
+      color: var(--text-dark);
+      border-radius: 8px;
+      outline: none;
+      font-size: 0.85rem;
+    }
+
+    .form-group textarea {
+      resize: none;
+      height: 80px;
+    }
+
+    .form-group input:focus, .form-group textarea:focus { border-color: var(--primary-peach); }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .modal-btn {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.82rem;
+    }
+
+    .modal-btn.cancel {
+      background: var(--soft-peach);
+      color: var(--text-dark);
+    }
+
+    .modal-btn.save {
+      background: var(--primary-peach);
+      color: white;
+    }
+
+    /* SOS Modal Styling */
+    .sos-options {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .sos-opt-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 10px;
+      border: 2px solid var(--border-color);
+      background: var(--card-white);
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+      color: var(--text-dark);
+    }
+
+    .sos-opt-btn.on.active {
+      background: #e6f4ea;
+      border-color: #10b981;
+      color: #10b981;
+    }
+
+    .sos-opt-btn.off.active {
+      background: #fef2f2;
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- ==========================================
+         VIEW 1: HOME SEARCH & MAP VIEW
+    ========================================== -->
+    <div class="app-view active-view" id="homeView">
+      <!-- 1. TOP CONTAINER -->
+      <div class="top-section">
+        <div class="app-header">
+          <button class="icon-btn" onclick="openDrawer()" title="Open Menu"><i class="fa-solid fa-bars"></i></button>
+          <div class="logo-text">CARPOOL<span>X</span></div>
+          <button class="icon-btn" onclick="openProfileModal()" title="Profile"><i class="fa-solid fa-user"></i></button>
+        </div>
+
+        <!-- Inputs & Swap Button -->
+        <div class="route-inputs">
+          <div class="input-wrapper">
+            <i class="fa-solid fa-circle-dot input-icon boarding"></i>
+            <input type="text" id="boardingInput" class="route-input" value="Downtown Central Station">
+          </div>
+          
+          <button class="swap-btn" onclick="swapLocations()" title="Reverse Route">
+            <i class="fa-solid fa-arrows-up-down"></i>
+          </button>
+
+          <div class="input-wrapper">
+            <i class="fa-solid fa-location-dot input-icon dropping"></i>
+            <input type="text" id="droppingInput" class="route-input" value="Tech Park Sector 4">
+          </div>
+        </div>
+
+        <!-- Seat Option -->
+        <div class="carpool-options">
+          <div class="seat-picker">
+            <span id="labelSeats">Seats:</span>
+            <button class="seat-btn" onclick="changeSeats(-1)">-</button>
+            <span id="seatCount" style="font-weight: bold; color: var(--text-dark);">1</span>
+            <button class="seat-btn" onclick="changeSeats(1)">+</button>
+          </div>
+          <button class="search-rides-btn" id="findRidesBtn">Find Shared Rides</button>
+        </div>
+      </div>
+
+      <!-- 2. MIDDLE CONTAINER (MAP ONLY) -->
+      <div class="middle-map-container">
+        <div id="map"></div>
+
+        <!-- Nearby Shared Rides Mini Overlay -->
+        <div class="rides-overlay">
+          <div class="mini-ride-card">
+            <div class="driver-info">
+              <img src="https://i.pravatar.cc/100?img=12" class="driver-avatar" alt="Driver">
+              <div class="driver-details">
+                <h4>Sarah K. ★ 4.9</h4>
+                <p>Honda Civic • 2 seats left</p>
+              </div>
+            </div>
+            <div class="price-tag">$4.50</div>
+          </div>
+          <div class="mini-ride-card">
+            <div class="driver-info">
+              <img src="https://i.pravatar.cc/100?img=60" class="driver-avatar" alt="Driver">
+              <div class="driver-details">
+                <h4>David M. ★ 4.8</h4>
+                <p>Tesla Model 3 • 1 seat left</p>
+              </div>
+            </div>
+            <div class="price-tag">$6.00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. BOTTOM NAVIGATION -->
+      <nav class="bottom-nav">
+        <a class="nav-item" onclick="showSupportPanel(); openDrawer();">
+          <i class="fa-solid fa-circle-question"></i>
+          <span>Help</span>
+        </a>
+        <a class="nav-item active" onclick="switchView('historyView')">
+          <i class="fa-solid fa-calendar-check"></i>
+          <span>My Booking</span>
+        </a>
+        <a class="nav-item" onclick="showSettingsPanel(); openDrawer();">
+          <i class="fa-solid fa-sliders"></i>
+          <span>Settings</span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- ==========================================
+         VIEW 2: RIDE HISTORY VIEW (FROM SOURCE 1)
+    ========================================== -->
+    <div class="app-view" id="historyView">
+      <!-- HEADER -->
+      <div class="history-header">
+        <div class="history-top-bar">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <button class="icon-btn circle" onclick="switchView('homeView')" title="Back to Map">
+              <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <div>
+              <div class="brand-title" onclick="switchView('homeView')">CARPOOLX</div>
+              <div class="page-subtitle">Ride History</div>
+            </div>
+          </div>
+
+          <div class="user-actions">
+            <!-- Profile Icon -->
+            <button class="profile-btn" id="profileBtnHistory" onclick="openProfileModal()" title="Go to Profile">A</button>
+
+            <!-- 3-Dots Menu -->
+            <button class="menu-btn" id="menuBtn" onclick="toggleDropdown()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+            </button>
+
+            <!-- Dropdown Popup -->
+            <div class="dropdown-menu" id="dropdownMenu">
+              <button class="dropdown-item" onclick="openModal('manageModal')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                Manage History
+              </button>
+              <button class="dropdown-item" onclick="openModal('defaultModal')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                Set Default As
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AUTO-DELETE RETENTION BADGE -->
+      <div class="retention-badge" id="retentionStatus">
+        Auto-delete preference: Not Set
+      </div>
+
+      <!-- FILTER PILLS -->
+      <div class="filter-wrapper">
+        <div class="filter-pills">
+          <button class="pill active" onclick="filterRides('all', this)">All Rides</button>
+          <button class="pill" onclick="filterRides('recents', this)">Recents</button>
+          <button class="pill" onclick="filterRides('frequents', this)">Frequents</button>
+          <button class="pill" onclick="filterRides('lastmonth', this)">Last Month</button>
+        </div>
+      </div>
+
+      <!-- RIDE CARDS LIST -->
+      <div class="rides-container" id="ridesList">
+        <!-- Dynamic Ride cards render here -->
+      </div>
+
+      <!-- BOTTOM NAVIGATION FOR HISTORY PAGE -->
+      <nav class="bottom-nav">
+        <a class="nav-item" onclick="switchView('homeView')">
+          <i class="fa-solid fa-map-location-dot"></i>
+          <span>Map</span>
+        </a>
+        <a class="nav-item active">
+          <i class="fa-solid fa-calendar-check"></i>
+          <span>My Booking</span>
+        </a>
+        <a class="nav-item" onclick="showSettingsPanel(); openDrawer();">
+          <i class="fa-solid fa-sliders"></i>
+          <span>Settings</span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- DRAWER OVERLAY -->
+    <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+
+    <!-- INTEGRATED SIDEBAR DRAWER SYSTEM -->
+    <nav class="sidebar-drawer" id="sidebarDrawer" aria-label="Main menu">
+      <div class="drawer-view-wrapper" id="drawerViewWrapper">
+        
+        <!-- PANEL 1: MAIN MENU -->
+        <div class="drawer-panel">
+          <div class="drawer-header-row">
+            <div class="drawer-brand">CarpoolX</div>
+            <button class="icon-btn circle" onclick="closeDrawer()" title="Close menu" aria-label="Close menu">
+              <i data-lucide="x" style="width:14px; height:14px;"></i>
+            </button>
+          </div>
+
+          <!-- PROFILE HEADER -->
+          <button class="drawer-profile" onclick="openProfileModal()">
+            <div class="drawer-avatar">
+              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300" id="drawer-avatar-img" alt="Alex Morgan">
+            </div>
+            <div class="drawer-profile-info">
+              <div class="drawer-profile-name" id="drawer-display-name">Alex Morgan</div>
+              <div class="drawer-profile-phone" id="drawer-display-phone">+1 (555) 019-2834</div>
+            </div>
+            <i data-lucide="chevron-right" class="menu-item-chevron" style="width:16px; height:16px;"></i>
+          </button>
+
+          <!-- MENU ITEMS -->
+          <button class="drawer-menu-item" onclick="switchView('historyView'); closeDrawer();">
+            <div class="menu-icon-circle">
+              <i data-lucide="clock" style="width:17px; height:17px;"></i>
+            </div>
+            <div class="menu-item-label">Ride History</div>
+            <i data-lucide="chevron-right" class="menu-item-chevron" style="width:16px; height:16px;"></i>
+          </button>
+
+          <button class="drawer-menu-item" onclick="showSupportPanel()">
+            <div class="menu-icon-circle">
+              <i data-lucide="headphones" style="width:17px; height:17px;"></i>
+            </div>
+            <div class="menu-item-label">Support</div>
+            <i data-lucide="chevron-right" class="menu-item-chevron" style="width:16px; height:16px;"></i>
+          </button>
+
+          <button class="drawer-menu-item" onclick="showAboutPanel()">
+            <div class="menu-icon-circle">
+              <i data-lucide="info" style="width:17px; height:17px;"></i>
+            </div>
+            <div class="menu-item-label">About</div>
+            <i data-lucide="chevron-right" class="menu-item-chevron" style="width:16px; height:16px;"></i>
+          </button>
+
+          <!-- SETTINGS TRIGGER -->
+          <button class="drawer-menu-item" onclick="showSettingsPanel()">
+            <div class="menu-icon-circle">
+              <i data-lucide="settings" style="width:17px; height:17px;"></i>
+            </div>
+            <div class="menu-item-label">Settings</div>
+            <i data-lucide="chevron-right" class="menu-item-chevron" style="width:16px; height:16px;"></i>
+          </button>
+
+          <!-- FOOTER -->
+          <div class="drawer-footer">
+            <button class="logout-btn" onclick="logout()">
+              <i data-lucide="log-out" style="width:16px; height:16px;"></i>
+              Log Out
+            </button>
+            <div class="app-version-text">CarpoolX v3.2.0 · Made for carpoolers</div>
+          </div>
+        </div>
+
+        <!-- PANEL 2: SETTINGS SUB-MENU -->
+        <div class="drawer-panel">
+          <div class="drawer-header-row">
+            <div class="drawer-title-with-back">
+              <button class="icon-btn circle" onclick="resetDrawerPanel()" title="Back" aria-label="Back">
+                <i data-lucide="chevron-left" style="width:16px; height:16px;"></i>
+              </button>
+              <span class="drawer-title-text">Settings</span>
+            </div>
+            <button class="icon-btn circle" onclick="closeDrawer()" title="Close menu" aria-label="Close menu">
+              <i data-lucide="x" style="width:14px; height:14px;"></i>
+            </button>
+          </div>
+
+          <div class="settings-section-title">Preferences</div>
+
+          <!-- Dark Mode Toggle -->
+          <div class="drawer-menu-item">
+            <div class="menu-icon-circle">
+              <i data-lucide="moon" style="width:17px; height:17px;"></i>
+            </div>
+            <div class="menu-item-label">
+              Dark Mode
+              <span class="menu-item-sublabel" id="darkModeStatus">Off</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode(this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Notifications Toggle -->
+          <div class="drawer-menu-item">
+            <div class="menu-icon-circle">
+              <i data-lucide="bell" style="width:17px; height:17px;"></i>
+            </div>
+            <div class="menu-item-label">
+              Notifications
+              <span class="menu-item-sublabel" id="notifStatus">Enabled</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="notifToggle" checked onchange="toggleNotifications(this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Language Selector -->
+          <div class="drawer-menu-item">
+            <div class="menu-icon-circle">
+              <i data-lucide="globe" style="width:17px; height:17px;"></i>
+            </div>
+            <div class="menu-item-label">Language</div>
+            <select class="setting-select" id="languageSelect" onchange="changeLanguage(this.value)">
+              <option value="en">English</option>
+              <option value="hi">Hindi (हिंदी)</option>
+              <option value="es">Spanish (Español)</option>
+            </select>
+          </div>
+
+          <div class="settings-section-title">Privacy & Permissions</div>
+
+          <!-- Location Access Switch -->
+          <div class="drawer-menu-item">
+            <div class="menu-icon-circle">
+              <i data-lucide="map-pin" style="width:17px; height:17px;"></i>
+            </div>
+            <div class="menu-item-label">
+              Location Access
+              <span class="menu-item-sublabel" id="locationStatus">Granted</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="locationToggle" checked onchange="toggleLocation(this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Privacy Settings Options -->
+          <button class="drawer-menu-item" onclick="openPrivacySettings()">
+            <div class="menu-icon-circle">
+              <i data-lucide="lock" style="width:17px; height:17px;"></i>
+            </div>
+            <div class="menu-item-label">
+              Privacy Settings
+              <span class="menu-item-sublabel">Data sharing & visibility</span>
+            </div>
+            <i data-lucide="chevron-right" class="menu-item-chevron" style="width:16px; height:16px;"></i>
+          </button>
+
+        </div>
+
+        <!-- PANEL 3: ABOUT SUB-MENU -->
+        <div class="drawer-panel">
+          <div class="drawer-header-row">
+            <div class="drawer-title-with-back">
+              <button class="icon-btn circle" onclick="resetDrawerPanel()" title="Back" aria-label="Back">
+                <i data-lucide="chevron-left" style="width:16px; height:16px;"></i>
+              </button>
+              <span class="drawer-title-text">About</span>
+            </div>
+            <button class="icon-btn circle" onclick="closeDrawer()" title="Close menu" aria-label="Close menu">
+              <i data-lucide="x" style="width:14px; height:14px;"></i>
+            </button>
+          </div>
+
+          <div class="settings-section-title">Application Info</div>
+
+          <!-- Developers Option -->
+          <button class="drawer-menu-item" onclick="openDevelopersModal()">
+            <div class="menu-icon-circle">
+              <i data-lucide="code" style="width:17px; height:17px;"></i>
+            </div>
+            <div class="menu-item-label">
+              Developers
+              <span class="menu-item-sublabel">Meet the team</span>
+            </div>
+            <i data-lucide="chevron-right" class="menu-item-chevron" style="width:16px; height:16px;"></i>
+          </button>
+
+          <!-- Version Option -->
+          <div class="drawer-menu-item">
+            <div class="menu-icon-circle">
+              <i data-lucide="tag" style="width:17px; height:17px;"></i>
+            </div>
+            <div class="menu-item-label">
+              Version
+              <span class="menu-item-sublabel">v3.2.0 (Latest Release)</span>
+            </div>
+          </div>
+
+          <!-- Project Description Option -->
+          <button class="drawer-menu-item" onclick="openDescriptionModal()">
+            <div class="menu-icon-circle">
+              <i data-lucide="file-text" style="width:17px; height:17px;"></i>
+            </div>
+            <div class="menu-item-label">
+              Project Description
+              <span class="menu-item-sublabel">Learn more about CarpoolX</span>
+            </div>
+            <i data-lucide="chevron-right" class="menu-item-chevron" style="width:16px; height:16px;"></i>
+          </button>
+        </div>
+
+        <!-- PANEL 4: SUPPORT SUB-MENU -->
+        <div class="drawer-panel">
+          <div class="drawer-header-row">
+            <div class="drawer-title-with-back">
+              <button class="icon-btn circle" onclick="resetDrawerPanel()" title="Back" aria-label="Back">
+                <i data-lucide="chevron-left" style="width:16px; height:16px;"></i>
+              </button>
+              <span class="drawer-title-text">Support</span>
+            </div>
+            <button class="icon-btn circle" onclick="closeDrawer()" title="Close menu" aria-label="Close menu">
+              <i data-lucide="x" style="width:14px; height:14px;"></i>
+            </button>
+          </div>
+
+          <div class="settings-section-title">Help & Services</div>
+
+          <!-- FAQs -->
+          <button class="drawer-menu-item" onclick="openFaqModal()">
+            <div class="menu-icon-circle">
+              <i data-lucide="help-circle" style="width:17px; height:17px;"></i>
+            </div>
+            <div class="menu-item-label">
+              FAQs
+              <span class="menu-item-sublabel">Frequently asked questions</span>
+            </div>
+            <i data-lucide="chevron-right" class="menu-item-chevron" style="width:16px; height:16px;"></i>
+          </button>
+
+          <!-- Raise Complaints -->
+          <button class="drawer-menu-item" onclick="openComplaintModal()">
+            <div class="menu-icon-circle">
+              <i data-lucide="alert-triangle" style="width:17px; height:17px;"></i>
+            </div>
+            <div class="menu-item-label">
+              Raise Complaints
+              <span class="menu-item-sublabel">Submit an issue or feedback</span>
+            </div>
+            <i data-lucide="chevron-right" class="menu-item-chevron" style="width:16px; height:16px;"></i>
+          </button>
+
+          <!-- Contact Support -->
+          <button class="drawer-menu-item" onclick="openContactModal()">
+            <div class="menu-icon-circle">
+              <i data-lucide="phone-call" style="width:17px; height:17px;"></i>
+            </div>
+            <div class="menu-item-label">
+              Contact Support
+              <span class="menu-item-sublabel">Helpline & direct email</span>
+            </div>
+            <i data-lucide="chevron-right" class="menu-item-chevron" style="width:16px; height:16px;"></i>
+          </button>
+
+          <!-- Chat Support -->
+          <button class="drawer-menu-item" onclick="openChatModal()">
+            <div class="menu-icon-circle">
+              <i data-lucide="message-square" style="width:17px; height:17px;"></i>
+            </div>
+            <div class="menu-item-label">
+              Chat Support
+              <span class="menu-item-sublabel">Talk with a support agent</span>
+            </div>
+            <i data-lucide="chevron-right" class="menu-item-chevron" style="width:16px; height:16px;"></i>
+          </button>
+        </div>
+
+      </div>
+    </nav>
+
+    <!-- FULL PROFILE OVERLAY -->
+    <div class="profile-overlay" id="profile-overlay">
+      <div class="profile-header-bar">
+        <span class="profile-header-title">My Profile</span>
+        <button class="icon-btn circle" onclick="closeProfileModal()" title="Close Profile">
+          <i data-lucide="x" style="width:16px; height:16px;"></i>
+        </button>
+      </div>
+
+      <!-- Avatar Section -->
+      <div class="avatar-wrapper">
+        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300" alt="Profile" class="avatar-img" id="user-avatar">
+        
+        <div class="avatar-actions">
+          <input type="file" id="image-file-input" accept="image/*" capture="environment">
+          
+          <button class="action-circle-btn" id="trigger-camera" title="Change Photo">
+            <i data-lucide="camera" style="width:15px; height:15px;"></i>
+          </button>
+
+          <button class="action-circle-btn" id="open-edit-modal" title="Edit Profile Details">
+            <i data-lucide="pencil" style="width:15px; height:15px;"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Name & Badge -->
+      <div class="user-heading">
+        <h2 class="user-name" id="display-name">Alex Morgan</h2>
+        <span class="user-badge">Frequent Sharer</span>
+      </div>
+
+      <!-- Impact Stats -->
+      <div class="sharing-stats">
+        <div class="stat-item">
+          <div class="stat-value">48</div>
+          <div class="stat-label">Shared Rides</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">120 kg</div>
+          <div class="stat-label">CO₂ Saved</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">4.9 ★</div>
+          <div class="stat-label">Rating</div>
+        </div>
+      </div>
+
+      <!-- User Information -->
+      <div class="details-group">
+        <div class="detail-item">
+          <div class="icon-box"><i data-lucide="phone" style="width:16px;"></i></div>
+          <div class="detail-content">
+            <div class="detail-label">Phone Number</div>
+            <div class="detail-value" id="display-phone">+1 (555) 019-2834</div>
+          </div>
+        </div>
+
+        <div class="detail-item">
+          <div class="icon-box"><i data-lucide="mail" style="width:16px;"></i></div>
+          <div class="detail-content">
+            <div class="detail-label">Email Address</div>
+            <div class="detail-value" id="display-email">alex.m@example.com</div>
+          </div>
+        </div>
+
+        <div class="detail-item">
+          <div class="icon-box"><i data-lucide="users" style="width:16px;"></i></div>
+          <div class="detail-content">
+            <div class="detail-label">Emergency Contacts</div>
+            <div class="detail-value" id="display-emergency">2 Contacts Added</div>
+          </div>
+        </div>
+
+        <div class="detail-item clickable" id="open-sos-modal">
+          <div class="icon-box sos"><i data-lucide="shield-alert" style="width:16px;"></i></div>
+          <div class="detail-content">
+            <div class="detail-label">SOS Settings</div>
+            <div class="detail-value" id="display-sos-status">Auto-alert: ON</div>
+          </div>
+          <i data-lucide="chevron-right" style="width:16px; color:#9ca3af;"></i>
+        </div>
+      </div>
+
+      <button class="logout-btn" onclick="logout()" style="margin-top: auto;">
+        <i data-lucide="log-out" style="width:16px; height:16px;"></i>
+        Log Out
+      </button>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div class="modal-overlay" id="edit-modal">
+      <div class="modal">
+        <div class="modal-title">Edit Profile Details</div>
+        
+        <div class="form-group">
+          <label for="input-username">Username</label>
+          <input type="text" id="input-username" value="Alex Morgan">
+        </div>
+        
+        <div class="form-group">
+          <label for="input-phone">Phone Number</label>
+          <input type="text" id="input-phone" value="+1 (555) 019-2834">
+        </div>
+
+        <div class="form-group">
+          <label for="input-email">Email Address</label>
+          <input type="email" id="input-email" value="alex.m@example.com">
+        </div>
+
+        <div class="form-group">
+          <label for="input-emergency">Emergency Contacts</label>
+          <input type="number" id="input-emergency" value="2" min="0">
+        </div>
+
+        <div class="modal-actions">
+          <button class="modal-btn cancel" id="close-modal">Cancel</button>
+          <button class="modal-btn save" id="save-profile">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SOS Settings Modal -->
+    <div class="modal-overlay" id="sos-modal">
+      <div class="modal">
+        <div class="modal-title">SOS Auto-Alert</div>
+        <p style="font-size: 0.78rem; color: var(--text-muted);">Set auto-alert functionality for emergency situations during rides.</p>
+        
+        <div class="sos-options">
+          <button class="sos-opt-btn on active" id="sos-opt-on">ON</button>
+          <button class="sos-opt-btn off" id="sos-opt-off">OFF</button>
+        </div>
+
+        <div class="modal-actions">
+          <button class="modal-btn cancel" id="close-sos-modal">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEVELOPERS MODAL -->
+    <div class="modal-overlay" id="developers-modal">
+      <div class="modal">
+        <div class="modal-title">Developers</div>
+        <p style="font-size: 0.78rem; color: var(--text-muted);">The engineering team behind CarpoolX:</p>
+        
+        <div class="developer-list">
+          <div class="developer-card">
+            <div class="developer-avatar">AS</div>
+            <div class="developer-name">1. Aditya Singh</div>
+          </div>
+          <div class="developer-card">
+            <div class="developer-avatar">AS</div>
+            <div class="developer-name">2. Abhay Sharma</div>
+          </div>
+          <div class="developer-card">
+            <div class="developer-avatar">NS</div>
+            <div class="developer-name">3. Naveen Suthar</div>
+          </div>
+          <div class="developer-card">
+            <div class="developer-avatar">AS</div>
+            <div class="developer-name">4. Aryan Surgade</div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="modal-btn cancel" onclick="closeModal('developers-modal')">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROJECT DESCRIPTION MODAL -->
+    <div class="modal-overlay" id="description-modal">
+      <div class="modal">
+        <div class="modal-title">Project Description</div>
+        <div style="font-size: 0.8rem; color: var(--text-dark); line-height: 1.5; margin-top: 8px;">
+          <p><strong>CarpoolX</strong> is an intuitive, modern ride-sharing web application built to connect commuters, reduce carbon footprints, and make daily city travel efficient and affordable.</p>
+          <br>
+          <p>Featuring interactive OpenStreetMap integrations, real-time seat pickers, light/dark themes, and safety-focused emergency controls.</p>
+        </div>
+
+        <div class="modal-actions">
+          <button class="modal-btn cancel" onclick="closeModal('description-modal')">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAQs MODAL -->
+    <div class="modal-overlay" id="faq-modal">
+      <div class="modal">
+        <div class="modal-title">Frequently Asked Questions</div>
+        
+        <div class="faq-item">
+          <div class="faq-q">How do I book a shared ride?</div>
+          <div class="faq-a">Enter your pickup and drop-off locations, select the required seats, and click 'Find Shared Rides'.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Is CarpoolX safe?</div>
+          <div class="faq-a">Yes! All drivers undergo background verification. You also have an emergency SOS auto-alert feature in settings.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">How is the fare calculated?</div>
+          <div class="faq-a">Fares are split evenly between all co-riders based on distance and route duration.</div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="modal-btn cancel" onclick="closeModal('faq-modal')">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RAISE COMPLAINT MODAL -->
+    <div class="modal-overlay" id="complaint-modal">
+      <div class="modal">
+        <div class="modal-title">Raise a Complaint</div>
+        
+        <div class="form-group">
+          <label>Complaint Type</label>
+          <select id="complaint-type">
+            <option>Driver Behavior / Misconduct</option>
+            <option>Route Deviation</option>
+            <option>Payment & Fare Issue</option>
+            <option>App / Technical Bug</option>
+            <option>Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Ride ID (Optional)</label>
+          <input type="text" placeholder="e.g. #CR-88291">
+        </div>
+
+        <div class="form-group">
+          <label>Describe the issue</label>
+          <textarea id="complaint-desc" placeholder="Provide details about your issue..."></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button class="modal-btn cancel" onclick="closeModal('complaint-modal')">Cancel</button>
+          <button class="modal-btn save" onclick="submitComplaint()">Submit</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTACT SUPPORT MODAL -->
+    <div class="modal-overlay" id="contact-modal">
+      <div class="modal">
+        <div class="modal-title">Contact Support</div>
+        
+        <div class="developer-list">
+          <div class="developer-card">
+            <div class="menu-icon-circle"><i data-lucide="phone" style="width:16px;"></i></div>
+            <div>
+              <div class="developer-name">24/7 Toll-Free Hotline</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">+1 (800) 555-CARP</div>
+            </div>
+          </div>
+
+          <div class="developer-card">
+            <div class="menu-icon-circle"><i data-lucide="mail" style="width:16px;"></i></div>
+            <div>
+              <div class="developer-name">Email Support</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">support@carpoolx.com</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="modal-btn cancel" onclick="closeModal('contact-modal')">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAT SUPPORT MODAL -->
+    <div class="modal-overlay" id="chat-modal">
+      <div class="modal">
+        <div class="modal-title">Live Chat Support</div>
+        
+        <div class="chat-box" id="chat-box">
+          <div class="chat-msg bot">Hello Alex! How can CarpoolX support help you today?</div>
+        </div>
+
+        <div style="display: flex; gap: 6px;">
+          <input type="text" id="chat-input" placeholder="Type a message..." style="flex:1; padding: 8px 10px; border-radius: 8px; border:1px solid var(--border-color); font-size:0.8rem; outline:none;">
+          <button class="modal-btn save" onclick="sendChatMessage()">Send</button>
+        </div>
+
+        <div class="modal-actions">
+          <button class="modal-btn cancel" onclick="closeModal('chat-modal')">End Chat</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 1: MANAGE HISTORY (FROM SOURCE 1) -->
+    <div class="modal-overlay" id="manageModal" onclick="closeModalOnOutside(event, 'manageModal')">
+      <div class="modal-content">
+        <div class="modal-header-row">
+          <div class="modal-title">Manage History</div>
+          <button class="close-modal-btn" onclick="closeModal('manageModal')">&times;</button>
+        </div>
+        <div class="modal-options">
+          <button class="option-btn danger" onclick="deleteRides('all')">Delete All Rides</button>
+          <button class="option-btn" onclick="deleteRides('today')">Delete Today</button>
+          <button class="option-btn" onclick="deleteRides('yesterday')">Delete Yesterday</button>
+          <button class="option-btn" onclick="deleteRides('this_month')">Delete This Month</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 2: SET DEFAULT RETENTION (FROM SOURCE 1) -->
+    <div class="modal-overlay" id="defaultModal" onclick="closeModalOnOutside(event, 'defaultModal')">
+      <div class="modal-content">
+        <div class="modal-header-row">
+          <div class="modal-title">Set Auto-Delete Default</div>
+          <button class="close-modal-btn" onclick="closeModal('defaultModal')">&times;</button>
+        </div>
+        <div class="modal-options">
+          <button class="option-btn" onclick="setDefaultRetention('1 Day')">Delete after 1 day</button>
+          <button class="option-btn" onclick="setDefaultRetention('7 Days')">Delete after 7 days</button>
+          <button class="option-btn" onclick="setDefaultRetention('15 Days')">Delete after 15 days</button>
+          <button class="option-btn" onclick="setDefaultRetention('30 Days')">Delete after 30 days</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 3: RE-BOOK RIDE ACTION (FROM SOURCE 1) -->
+    <div class="modal-overlay" id="rebookModal" onclick="closeModalOnOutside(event, 'rebookModal')">
+      <div class="modal-content">
+        <div class="modal-header-row">
+          <div class="modal-title">Book This Ride Again</div>
+          <button class="close-modal-btn" onclick="closeModal('rebookModal')">&times;</button>
+        </div>
+        <div class="rebook-box" id="rebookCardDetails">
+          <!-- Dynamic Re-book Info Inserted via JavaScript -->
+        </div>
+        <button class="primary-btn" onclick="confirmRebook()">Confirm & Book Ride</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Leaflet Map JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    // Initialize icons
+    lucide.createIcons();
+
+    // --- VIEW MANAGEMENT LOGIC ---
+    function switchView(viewId) {
+      document.querySelectorAll('.app-view').forEach(view => {
+        view.classList.remove('active-view');
+      });
+      document.getElementById(viewId).classList.add('active-view');
+
+      // Refresh map invalidateSize if navigating back to Home Map
+      if (viewId === 'homeView') {
+        setTimeout(() => {
+          map.invalidateSize();
+        }, 200);
+      }
+    }
+
+    // --- OPENSTREETMAP INITIALIZATION ---
+    const map = L.map('map', { zoomControl: false }).setView([37.7749, -122.4194], 13);
+
+    let lightTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 });
+    let darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 });
+    
+    lightTiles.addTo(map);
+
+    // Custom Map Markers
+    const startIcon = L.divIcon({
+      html: '<i class="fa-solid fa-circle-dot" style="color:#4CAF50; font-size:20px;"></i>',
+      className: 'map-marker-icon'
+    });
+
+    const dropIcon = L.divIcon({
+      html: '<i class="fa-solid fa-location-dot" style="color:#FF7043; font-size:22px;"></i>',
+      className: 'map-marker-icon'
+    });
+
+    L.marker([37.7749, -122.4194], {icon: startIcon}).addTo(map).bindPopup("Boarding Point");
+    L.marker([37.7833, -122.4167], {icon: dropIcon}).addTo(map).bindPopup("Dropping Point");
+
+    // Route Polyline
+    const latlngs = [
+      [37.7749, -122.4194],
+      [37.7800, -122.4180],
+      [37.7833, -122.4167]
+    ];
+    L.polyline(latlngs, {color: '#FF8A65', weight: 4, opacity: 0.85, dashArray: '6, 6'}).addTo(map);
+
+    // Swap Locations
+    function swapLocations() {
+      const boarding = document.getElementById('boardingInput');
+      const dropping = document.getElementById('droppingInput');
+      const temp = boarding.value;
+      boarding.value = dropping.value;
+      dropping.value = temp;
+    }
+
+    // Seat Counter
+    let seats = 1;
+    function changeSeats(amount) {
+      seats = Math.max(1, Math.min(4, seats + amount));
+      document.getElementById('seatCount').innerText = seats;
+    }
+
+    // --- DRAWER CONTROLS ---
+    function openDrawer() {
+      document.getElementById('sidebarDrawer').classList.add('active');
+      document.getElementById('drawerOverlay').classList.add('active');
+    }
+
+    function closeDrawer() {
+      document.getElementById('sidebarDrawer').classList.remove('active');
+      document.getElementById('drawerOverlay').classList.remove('active');
+      setTimeout(() => { resetDrawerPanel(); }, 300);
+    }
+
+    function showSettingsPanel() {
+      const wrapper = document.getElementById('drawerViewWrapper');
+      wrapper.className = 'drawer-view-wrapper show-settings';
+    }
+
+    function showAboutPanel() {
+      const wrapper = document.getElementById('drawerViewWrapper');
+      wrapper.className = 'drawer-view-wrapper show-about';
+    }
+
+    function showSupportPanel() {
+      const wrapper = document.getElementById('drawerViewWrapper');
+      wrapper.className = 'drawer-view-wrapper show-support';
+    }
+
+    function resetDrawerPanel() {
+      const wrapper = document.getElementById('drawerViewWrapper');
+      wrapper.className = 'drawer-view-wrapper';
+    }
+
+    function logout() {
+      if (confirm('Are you sure you want to log out of CarpoolX?')) {
+        alert('You have been logged out.');
+        closeDrawer();
+        closeProfileModal();
+      }
+    }
+
+    // --- GENERAL MODAL CONTROLS ---
+    function openModal(id) {
+      const dropdown = document.getElementById('dropdownMenu');
+      if (dropdown) dropdown.classList.remove('active');
+      document.getElementById(id).classList.add('active');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    function closeModalOnOutside(event, id) {
+      if (event.target.id === id) {
+        closeModal(id);
+      }
+    }
+
+    function openDevelopersModal() { document.getElementById('developers-modal').classList.add('active'); }
+    function openDescriptionModal() { document.getElementById('description-modal').classList.add('active'); }
+    function openFaqModal() { document.getElementById('faq-modal').classList.add('active'); }
+    function openComplaintModal() { document.getElementById('complaint-modal').classList.add('active'); }
+    function openContactModal() { document.getElementById('contact-modal').classList.add('active'); }
+    function openChatModal() { document.getElementById('chat-modal').classList.add('active'); }
+
+    function submitComplaint() {
+      const desc = document.getElementById('complaint-desc').value;
+      if (!desc.trim()) {
+        alert('Please describe your issue before submitting.');
+        return;
+      }
+      alert('Your complaint has been submitted successfully! Ticket ID #CP-' + Math.floor(1000 + Math.random() * 9000));
+      document.getElementById('complaint-desc').value = '';
+      closeModal('complaint-modal');
+    }
+
+    function sendChatMessage() {
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const chatBox = document.getElementById('chat-box');
+
+      // Add user message
+      const userMsg = document.createElement('div');
+      userMsg.className = 'chat-msg user';
+      userMsg.innerText = text;
+      chatBox.appendChild(userMsg);
+
+      input.value = '';
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      // Automated Bot Response
+      setTimeout(() => {
+        const botMsg = document.createElement('div');
+        botMsg.className = 'chat-msg bot';
+        botMsg.innerText = "Thanks for reaching out! A support executive is looking into your message.";
+        chatBox.appendChild(botMsg);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }, 1000);
+    }
+
+    // --- PROFILE OVERLAY & EDIT LOGIC ---
+    const profileOverlay = document.getElementById('profile-overlay');
+    const nameDisplay = document.getElementById('display-name');
+    const phoneDisplay = document.getElementById('display-phone');
+    const emailDisplay = document.getElementById('display-email');
+    const emergencyDisplay = document.getElementById('display-emergency');
+    const drawerName = document.getElementById('drawer-display-name');
+    const drawerPhone = document.getElementById('drawer-display-phone');
+    const drawerAvatarImg = document.getElementById('drawer-avatar-img');
+    const sosDisplay = document.getElementById('display-sos-status');
+    const avatarImg = document.getElementById('user-avatar');
+
+    function openProfileModal() {
+      closeDrawer();
+      profileOverlay.classList.add('active');
+    }
+
+    function closeProfileModal() {
+      profileOverlay.classList.remove('active');
+    }
+
+    // Image Upload
+    const cameraBtn = document.getElementById('trigger-camera');
+    const fileInput = document.getElementById('image-file-input');
+
+    cameraBtn.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          avatarImg.src = event.target.result;
+          drawerAvatarImg.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Edit Profile Modal Controls
+    const editModal = document.getElementById('edit-modal');
+    const openEditBtn = document.getElementById('open-edit-modal');
+    const closeEditBtn = document.getElementById('close-modal');
+    const saveEditBtn = document.getElementById('save-profile');
+
+    const inputName = document.getElementById('input-username');
+    const inputPhone = document.getElementById('input-phone');
+    const inputEmail = document.getElementById('input-email');
+    const inputEmergency = document.getElementById('input-emergency');
+
+    openEditBtn.addEventListener('click', () => editModal.classList.add('active'));
+    closeEditBtn.addEventListener('click', () => editModal.classList.remove('active'));
+
+    saveEditBtn.addEventListener('click', () => {
+      if (inputName.value.trim() !== '') {
+        nameDisplay.textContent = inputName.value.trim();
+        drawerName.textContent = inputName.value.trim();
+        document.getElementById('profileBtnHistory').innerText = inputName.value.trim().charAt(0).toUpperCase();
+      }
+      if (inputPhone.value.trim() !== '') {
+        phoneDisplay.textContent = inputPhone.value.trim();
+        drawerPhone.textContent = inputPhone.value.trim();
+      }
+      if (inputEmail.value.trim() !== '') emailDisplay.textContent = inputEmail.value.trim();
+      if (inputEmergency.value !== '') emergencyDisplay.textContent = `${inputEmergency.value} Contacts Added`;
+      
+      editModal.classList.remove('active');
+    });
+
+    // SOS Modal Controls
+    const sosModal = document.getElementById('sos-modal');
+    const openSosBtn = document.getElementById('open-sos-modal');
+    const closeSosBtn = document.getElementById('close-sos-modal');
+    const sosOptOn = document.getElementById('sos-opt-on');
+    const sosOptOff = document.getElementById('sos-opt-off');
+
+    openSosBtn.addEventListener('click', () => sosModal.classList.add('active'));
+    closeSosBtn.addEventListener('click', () => sosModal.classList.remove('active'));
+
+    sosOptOn.addEventListener('click', () => {
+      sosOptOn.classList.add('active');
+      sosOptOff.classList.remove('active');
+      sosDisplay.textContent = 'Auto-alert: ON';
+    });
+
+    sosOptOff.addEventListener('click', () => {
+      sosOptOff.classList.add('active');
+      sosOptOn.classList.remove('active');
+      sosDisplay.textContent = 'Auto-alert: OFF';
+    });
+
+    // --- RIDE HISTORY SPECIFIC LOGIC (FROM SOURCE 1) ---
+    let rides = [
+      {
+        id: 1,
+        from: "Tech Park Phase 2",
+        to: "Greenwood Apartments",
+        price: "$12.50",
+        coRiders: 2,
+        bookingDate: "Today, 08:30 AM",
+        category: "today",
+        isFrequent: true,
+        month: "current"
+      },
+      {
+        id: 2,
+        from: "Downtown Mall",
+        to: "Metro Station Hub",
+        price: "$8.00",
+        coRiders: 3,
+        bookingDate: "Yesterday, 06:15 PM",
+        category: "yesterday",
+        isFrequent: false,
+        month: "current"
+      },
+      {
+        id: 3,
+        from: "City Airport Terminal 1",
+        to: "Tech Park Phase 2",
+        price: "$22.00",
+        coRiders: 1,
+        bookingDate: "2 weeks ago, 10:00 AM",
+        category: "recent",
+        isFrequent: true,
+        month: "current"
+      },
+      {
+        id: 4,
+        from: "Central Park Square",
+        to: "North Suburb Station",
+        price: "$14.20",
+        coRiders: 2,
+        bookingDate: "Last Month (Oct 12, 05:45 PM)",
+        category: "lastmonth",
+        isFrequent: false,
+        month: "last"
+      }
+    ];
+
+    let currentFilter = 'all';
+    let selectedRideForRebook = null;
+
+    function toggleDropdown() {
+      const menu = document.getElementById('dropdownMenu');
+      menu.classList.toggle('active');
+    }
+
+    window.addEventListener('click', function(e) {
+      const menuBtn = document.getElementById('menuBtn');
+      const menu = document.getElementById('dropdownMenu');
+      if (menuBtn && menu && !menuBtn.contains(e.target) && !menu.contains(e.target)) {
+        menu.classList.remove('active');
+      }
+    });
+
+    function openRebookModal(rideId) {
+      selectedRideForRebook = rides.find(r => r.id === rideId);
+      if (!selectedRideForRebook) return;
+
+      const detailsContainer = document.getElementById('rebookCardDetails');
+      detailsContainer.innerHTML = `
+        <div class="rebook-route">
+          <div class="point"><span class="dot pickup"></span> <strong>From:</strong> ${selectedRideForRebook.from}</div>
+          <div class="point"><span class="dot drop"></span> <strong>To:</strong> ${selectedRideForRebook.to}</div>
+        </div>
+        <div class="rebook-meta">
+          <span>Est. Fare: <strong>${selectedRideForRebook.price}</strong></span>
+          <span>Carpool: <strong>${selectedRideForRebook.coRiders} Co-passengers</strong></span>
+        </div>
+      `;
+      openModal('rebookModal');
+    }
+
+    function confirmRebook() {
+      if (!selectedRideForRebook) return;
+      closeModal('rebookModal');
+      alert(`🚀 Success! Re-booked ride from "${selectedRideForRebook.from}" to "${selectedRideForRebook.to}". Matching you with co-passengers...`);
+      
+      // Auto fill route back on map view
+      document.getElementById('boardingInput').value = selectedRideForRebook.from;
+      document.getElementById('droppingInput').value = selectedRideForRebook.to;
+      switchView('homeView');
+    }
+
+    function filterRides(type, element) {
+      currentFilter = type;
+      document.querySelectorAll('.pill').forEach(pill => pill.classList.remove('active'));
+      if(element) element.classList.add('active');
+      renderRides();
+    }
+
+    function renderRides() {
+      const container = document.getElementById('ridesList');
+      if(!container) return;
+      container.innerHTML = '';
+
+      let filteredRides = rides.filter(ride => {
+        if (currentFilter === 'recents') return ride.category === 'today' || ride.category === 'yesterday' || ride.category === 'recent';
+        if (currentFilter === 'frequents') return ride.isFrequent;
+        if (currentFilter === 'lastmonth') return ride.month === 'last';
+        return true; // 'all'
+      });
+
+      if (filteredRides.length === 0) {
+        container.innerHTML = `<div class="empty-state">No ride history available for this category.</div>`;
+        return;
+      }
+
+      filteredRides.forEach(ride => {
+        const card = document.createElement('div');
+        card.className = 'history-ride-card';
+        card.onclick = () => openRebookModal(ride.id);
+
+        card.innerHTML = `
+          <div class="card-top">
+            <div class="carpool-badge">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+              ${ride.coRiders} Co-passengers
+            </div>
+            <div class="ride-price">${ride.price}</div>
+          </div>
+          
+          <div class="route-info">
+            <div class="point">
+              <span class="dot pickup"></span>
+              <span>${ride.from}</span>
+            </div>
+            <div class="point">
+              <span class="dot drop"></span>
+              <span>${ride.to}</span>
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <span class="rebook-tag">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+              Tap to Book Again
+            </span>
+            <span class="booking-time">${ride.bookingDate}</span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function deleteRides(action) {
+      if (action === 'all') rides = [];
+      else if (action === 'today') rides = rides.filter(r => r.category !== 'today');
+      else if (action === 'yesterday') rides = rides.filter(r => r.category !== 'yesterday');
+      else if (action === 'this_month') rides = rides.filter(r => r.month !== 'current');
+
+      closeModal('manageModal');
+      renderRides();
+    }
+
+    function setDefaultRetention(days) {
+      const statusElement = document.getElementById('retentionStatus');
+      if(statusElement) statusElement.innerText = `Auto-delete set to: ${days}`;
+      closeModal('defaultModal');
+    }
+
+    // --- SETTINGS CONTROLS ---
+    function toggleDarkMode(isDark) {
+      if (isDark) {
+        document.body.classList.add('dark-mode');
+        document.getElementById('darkModeStatus').innerText = 'On';
+        localStorage.setItem('carpoolx_theme', 'dark');
+        map.removeLayer(lightTiles);
+        darkTiles.addTo(map);
+      } else {
+        document.body.classList.remove('dark-mode');
+        document.getElementById('darkModeStatus').innerText = 'Off';
+        localStorage.setItem('carpoolx_theme', 'light');
+        map.removeLayer(darkTiles);
+        lightTiles.addTo(map);
+      }
+    }
+
+    (function initTheme() {
+      if (localStorage.getItem('carpoolx_theme') === 'dark') {
+        document.getElementById('darkModeToggle').checked = true;
+        toggleDarkMode(true);
+      }
+    })();
+
+    function toggleNotifications(enabled) {
+      const statusText = document.getElementById('notifStatus');
+      if (enabled) {
+        statusText.innerText = 'Enabled';
+        if ("Notification" in window && Notification.permission !== "granted") {
+          Notification.requestPermission();
+        }
+      } else {
+        statusText.innerText = 'Disabled';
+      }
+    }
+
+    const translations = {
+      en: { seats: "Seats:", findRides: "Find Shared Rides" },
+      hi: { seats: "सीटें:", findRides: "सवारी खोजें" },
+      es: { seats: "Asientos:", findRides: "Buscar viajes" }
+    };
+
+    function changeLanguage(langKey) {
+      const lang = translations[langKey] || translations.en;
+      document.getElementById('labelSeats').innerText = lang.seats;
+      document.getElementById('findRidesBtn').innerText = lang.findRides;
+    }
+
+    function toggleLocation(enabled) {
+      const statusText = document.getElementById('locationStatus');
+      if (enabled) {
+        if ("geolocation" in navigator) {
+          navigator.geolocation.getCurrentPosition(
+            () => { statusText.innerText = 'Granted'; },
+            () => {
+              alert('Location permission was denied.');
+              document.getElementById('locationToggle').checked = false;
+              statusText.innerText = 'Denied';
+            }
+          );
+        } else {
+          statusText.innerText = 'Granted';
+        }
+      } else {
+        statusText.innerText = 'Disabled';
+      }
+    }
+
+    function openPrivacySettings() {
+      alert("Privacy Settings:\n- Ride History Sharing: Private\n- Profile Visibility: Active Riders Only\n- Contact Masking: Enabled");
+    }
+
+    // Initial Ride History Render
+    renderRides();
+  </script>
+</body>
+</html>

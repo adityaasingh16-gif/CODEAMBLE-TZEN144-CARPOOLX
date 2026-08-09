@@ -1,0 +1,2074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CarpoolX - Modern Ride Sharing</title>
+  
+  <!-- Google Fonts & FontAwesome Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  
+  <!-- Leaflet CSS (OpenStreetMap Engine) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    :root {
+      --bg-peach: #FFFAF6;
+      --card-white: #FFFFFF;
+      --primary-peach: #FF8A65;
+      --primary-peach-hover: #FF7043;
+      --soft-peach: #FFF0EB;
+      --text-dark: #2C2C2C;
+      --text-muted: #7C7C7C;
+      --border-color: #F0E6E0;
+      --shadow-sm: 0 4px 15px rgba(255, 138, 101, 0.08);
+      --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.12);
+      --danger: #E53935;
+    }
+
+    /* Dark Mode - toggled from the Settings panel. Overrides the same CSS
+       variables the rest of the app already uses, so every screen (cards,
+       inputs, borders) follows automatically without per-component rules. */
+    body.dark-mode {
+      --bg-peach: #17171A;
+      --card-white: #232327;
+      --soft-peach: #2B2B30;
+      --text-dark: #F2F2F2;
+      --text-muted: #A6A6AC;
+      --border-color: #3A3A40;
+      --shadow-sm: 0 4px 15px rgba(0, 0, 0, 0.35);
+      --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    body.dark-mode { background-color: #0E0E10; }
+    .app-container,
+    .app-container * {
+      transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background-color: #EFEFEF;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* Full Viewport Frame */
+    .app-container {
+      width: 100vw;
+      max-width: 100vw;
+      height: 100vh;
+      max-height: 100vh;
+      background-color: var(--bg-peach);
+      border-radius: 0;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* --- TOP SECTION --- */
+    .top-section {
+      background: var(--card-white);
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+      z-index: 10;
+    }
+
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .icon-btn {
+      background: var(--soft-peach);
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      color: var(--primary-peach-hover);
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .icon-btn:hover {
+      background: var(--primary-peach);
+      color: #FFF;
+    }
+
+    .logo-text {
+      font-weight: 700;
+      font-size: 1.25rem;
+      letter-spacing: 1px;
+      color: var(--text-dark);
+      cursor: pointer;
+    }
+
+    .logo-text span {
+      color: var(--primary-peach);
+    }
+
+    /* AC / Non-AC Filter Toggle Bar Above Boarding Input */
+    .filter-toggle-container {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+      background: var(--soft-peach);
+      padding: 4px;
+      border-radius: 10px;
+    }
+
+    .filter-btn {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+
+    .filter-btn.active {
+      background: #FFFFFF;
+      color: var(--primary-peach-hover);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Route Inputs */
+    .route-inputs {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 14px;
+      font-size: 0.9rem;
+    }
+
+    .input-icon.boarding { color: #4CAF50; }
+    .input-icon.dropping { color: var(--primary-peach); }
+
+    .route-input {
+      width: 100%;
+      padding: 9px 40px 9px 38px;
+      background: var(--soft-peach);
+      border: 1px solid transparent;
+      border-radius: 12px;
+      font-size: 0.82rem;
+      color: var(--text-dark);
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .route-input:focus {
+      border-color: var(--primary-peach);
+      background: #FFF;
+    }
+
+    .swap-btn {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 30px;
+      height: 30px;
+      background: #FFF;
+      border: 1px solid var(--border-color);
+      border-radius: 50%;
+      color: var(--primary-peach);
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Book Option Below Dropping Input */
+    .booking-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      align-items: center;
+    }
+
+    .seat-selector-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--soft-peach);
+      padding: 6px 10px;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      color: var(--text-dark);
+    }
+
+    .seat-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: white;
+      cursor: pointer;
+      font-weight: bold;
+      color: var(--text-dark);
+    }
+
+    .book-btn {
+      flex: 1;
+      background: var(--primary-peach);
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(255, 138, 101, 0.3);
+      transition: background 0.2s;
+    }
+
+    .book-btn:hover {
+      background: var(--primary-peach-hover);
+    }
+
+    /* Nav Buttons Row (My Booking & My Rides) */
+    .sketch-nav-bar {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed var(--border-color);
+    }
+
+    .sketch-nav-btn {
+      flex: 1;
+      padding: 7px;
+      background: #FFF;
+      border: 1.5px solid var(--primary-peach);
+      color: var(--primary-peach-hover);
+      border-radius: 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .sketch-nav-btn.active, .sketch-nav-btn:hover {
+      background: var(--primary-peach);
+      color: #FFF;
+    }
+
+    /* --- MIDDLE SECTION --- */
+    .middle-container {
+      flex: 1;
+      position: relative;
+      margin: 10px;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 2px solid var(--border-color);
+      background: #FFF;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #mapWrapper {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* View screen overlays */
+    .view-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg-peach);
+      z-index: 100;
+      overflow-y: auto;
+      padding: 14px;
+      display: none;
+    }
+
+    .view-screen.active {
+      display: block;
+    }
+
+    .view-screen-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .view-screen-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-dark);
+    }
+
+    .close-view-btn {
+      background: var(--soft-peach);
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-size: 1rem;
+      color: var(--text-dark);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Rides Overlay inside Map */
+    .rides-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 8px;
+      right: 8px;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      border-radius: 14px 14px 0 0;
+      padding: 8px;
+      max-height: 150px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 -10px 30px rgba(0,0,0,0.08);
+    }
+
+    .rides-overlay .ac-type-badge {
+      display: none !important;
+    }
+
+    .ride-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      background: var(--soft-peach);
+      border-radius: 10px;
+      margin-bottom: 6px;
+    }
+
+    .ride-card:last-child { margin-bottom: 0; }
+
+    .driver-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .driver-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .driver-details h4 {
+      font-size: 0.78rem;
+      color: var(--text-dark);
+    }
+
+    .driver-details p {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+    }
+
+    .ride-card-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 3px;
+    }
+
+    /* AC Badges */
+    .ac-type-badge {
+      font-size: 0.6rem;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .ac-type-badge.ac {
+      background: #E3F2FD;
+      color: #1976D2;
+      border: 1px solid #BBDEFB;
+    }
+
+    .ac-type-badge.nonac {
+      background: #FFF3E0;
+      color: #E65100;
+      border: 1px solid #FFE0B2;
+    }
+
+    /* OTP Display Badge */
+    .otp-display-badge {
+      background: #E8F5E9;
+      color: #2E7D32;
+      border: 1px solid #A5D6A7;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .otp-resend-btn {
+      color: #1B5E20;
+      text-decoration: underline;
+      cursor: pointer;
+      font-size: 0.68rem;
+      font-weight: 600;
+      margin-left: 4px;
+    }
+
+    .price-tag {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--primary-peach-hover);
+    }
+
+    /* Card Details */
+    .info-card {
+      background: #FFF;
+      border-radius: 14px;
+      padding: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 12px;
+    }
+
+    .info-card-header {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px dashed var(--border-color);
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      margin-bottom: 8px;
+      color: var(--text-dark);
+    }
+
+    .info-label {
+      color: var(--text-muted);
+    }
+
+    /* Track Button Styling */
+    .track-google-btn {
+      width: 100%;
+      background: #4285F4;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 10px;
+      box-shadow: 0 2px 8px rgba(66, 133, 244, 0.3);
+      transition: background 0.2s ease;
+    }
+
+    .track-google-btn:hover {
+      background: #3367D6;
+    }
+
+    /* Seat Grid */
+    .car-seats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      background: var(--soft-peach);
+      padding: 8px;
+      border-radius: 10px;
+      margin: 8px 0;
+    }
+
+    .seat-box {
+      background: #FFF;
+      padding: 6px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      text-align: center;
+      border: 1px solid var(--border-color);
+    }
+
+    .seat-box.booked-by-user {
+      background: #4CAF50;
+      color: #FFF;
+      font-weight: bold;
+    }
+
+    .seat-box.male-seat {
+      border-left: 3px solid #2196F3;
+    }
+
+    .seat-box.female-seat {
+      border-left: 3px solid #E91E63;
+    }
+
+    .cancel-ride-btn {
+      width: 100%;
+      background: #FFEBEE;
+      color: var(--danger);
+      border: 1px solid #FFCDD2;
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 30px 10px;
+      color: var(--text-muted);
+    }
+
+    .empty-state i {
+      font-size: 2.5rem;
+      color: var(--border-color);
+      margin-bottom: 10px;
+    }
+
+    /* --- BOTTOM SECTION --- */
+    .bottom-nav {
+      height: 60px;
+      background: #FFFFFF;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      border-top: 1px solid var(--border-color);
+      box-shadow: 0 -4px 15px rgba(0,0,0,0.03);
+      z-index: 10;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      text-decoration: none;
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .nav-item i { font-size: 1.1rem; }
+
+    .nav-item.active {
+      color: var(--primary-peach);
+    }
+
+    /* --- SIDEBAR & MODALS --- */
+    .sidebar {
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 75%;
+      height: 100%;
+      background: var(--bg-peach);
+      z-index: 10000;
+      box-shadow: var(--shadow-lg);
+      transition: all 0.3s ease;
+      padding: 30px 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar.open { left: 0; }
+
+    .sidebar-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.4);
+      z-index: 9999;
+      display: none;
+    }
+
+    .sidebar-overlay.active { display: block; }
+
+    .sidebar-user {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 20px;
+    }
+
+    .sidebar-menu {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sidebar-menu li a {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 12px;
+      color: var(--text-dark);
+      text-decoration: none;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .sidebar-menu li a:hover {
+      background: var(--soft-peach);
+      color: var(--primary-peach);
+    }
+
+    .sidebar-menu li.logout a {
+      color: var(--danger);
+      margin-top: 20px;
+    }
+
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.55);
+      z-index: 99999;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-box {
+      background: var(--card-white);
+      border-radius: 18px;
+      padding: 18px;
+      width: 100%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      animation: popIn 0.2s ease-out;
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text-dark);
+    }
+
+    .modal-body {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+
+    .gender-selector {
+      display: flex;
+      gap: 10px;
+      margin: 10px 0;
+      font-size: 0.75rem;
+    }
+
+    .gender-field {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .gender-field input {
+      padding: 6px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Settings modal: toggle rows + downside "settings open profile
+       setting" style link buttons (Profile Settings, Privacy, Help). */
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 2px;
+    }
+
+    .settings-row-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+
+    .settings-row-sub {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .app-toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 42px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .app-toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .app-toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: #DCDCDC;
+      border-radius: 24px;
+      transition: 0.2s;
+    }
+
+    .app-toggle-slider::before {
+      content: "";
+      position: absolute;
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: #fff;
+      border-radius: 50%;
+      transition: 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    }
+
+    .app-toggle-switch input:checked + .app-toggle-slider {
+      background-color: var(--primary-peach);
+    }
+
+    .app-toggle-switch input:checked + .app-toggle-slider::before {
+      transform: translateX(18px);
+    }
+
+    .settings-divider {
+      height: 1px;
+      background: var(--border-color);
+      margin: 10px 0;
+    }
+
+    .settings-link-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: none;
+      border: none;
+      padding: 12px 2px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      cursor: pointer;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .settings-link-btn:last-child {
+      border-bottom: none;
+    }
+
+    .settings-link-btn i:first-child {
+      color: var(--primary-peach-hover);
+      margin-right: 8px;
+    }
+
+    .settings-link-btn i:last-child {
+      color: var(--text-muted);
+      font-size: 0.7rem;
+    }
+
+    .recent-searches {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 8px 2px 2px;
+      scrollbar-width: none;
+    }
+    .recent-searches::-webkit-scrollbar { display: none; }
+
+    .recent-chip {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--soft-peach);
+      border: 1px solid var(--border-color);
+      color: var(--text-dark);
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 20px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .recent-chip i {
+      color: var(--primary-peach-hover);
+      font-size: 0.65rem;
+    }
+
+    .modal-btn {
+      flex: 1;
+      padding: 9px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .modal-btn.cancel {
+      background: #F0E6E0;
+      color: var(--text-dark);
+    }
+
+    .modal-btn.confirm {
+      background: var(--primary-peach);
+      color: white;
+    }
+
+    .modal-btn.danger-confirm {
+      background: var(--danger);
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+    <!-- Sidebar Menu -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-user">
+        <!-- Removed default avatar and name — show Login button for unauthenticated users -->
+        <button class="login-btn" onclick="navigate('Login')" style="background:none;border:none;color:var(--text-dark);font-weight:700;font-size:1rem;display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <i class="fa-solid fa-right-to-bracket" style="color:var(--primary-peach);font-size:1.2rem;"></i>
+          <span>Login</span>
+        </button>
+      </div>
+      <ul class="sidebar-menu">
+        <li><a href="#" onclick="showHomeView()"><i class="fa-solid fa-house"></i> Home</a></li>
+        <li><a href="#" onclick="navigate('History')"><i class="fa-solid fa-clock-rotate-left"></i> History</a></li>
+        <li><a href="#" onclick="navigate('About')"><i class="fa-solid fa-circle-info"></i> About</a></li>
+        <li><a href="#" onclick="openView('booking')"><i class="fa-solid fa-ticket"></i> My Booking</a></li>
+        <li><a href="#" onclick="openPostRideModal()"><i class="fa-solid fa-car-side"></i> Post a Ride (Driver)</a></li>
+        <li><a href="#" onclick="navigate('DriverDashboard')"><i class="fa-solid fa-gauge"></i> Driver Dashboard</a></li>
+        <li><a href="vehicle-details.html"><i class="fa-solid fa-id-card"></i> Vehicle &amp; License Details</a></li>
+        <li><a href="#" onclick="openSettingsModal()"><i class="fa-solid fa-gear"></i> Settings</a></li>
+        <li><a href="#" onclick="navigate('Profile')"><i class="fa-solid fa-user"></i> Profile</a></li>
+        <li class="logout"><a href="#" onclick="navigate('Logout')"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
+      </ul>
+    </div>
+
+    <!-- 1. TOP CONTAINER -->
+    <div class="top-section">
+      <div class="app-header">
+        <button class="icon-btn" onclick="openSidebar()"><i class="fa-solid fa-bars"></i></button>
+        <div class="logo-text" onclick="showHomeView()">CARPOOL<span>X</span></div>
+        <button class="icon-btn" onclick="loadNotifications()" aria-label="Notifications" style="position:relative;">
+          <i class="fa-solid fa-bell"></i>
+          <span id="notification-badge" style="display:none;position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;background:#E53935;color:#fff;font-size:9px;line-height:16px;font-weight:800;"></span>
+        </button>
+      </div>
+
+      <!-- AC / NON-AC FILTER OPTIONS ABOVE BOARDING INPUT -->
+      <div class="filter-toggle-container">
+        <button class="filter-btn active" id="filterAll" onclick="setAcFilter('all')">
+          <i class="fa-solid fa-car"></i> All
+        </button>
+        <button class="filter-btn" id="filterAc" onclick="setAcFilter('ac')">
+          <i class="fa-solid fa-snowflake"></i> AC Ride
+        </button>
+        <button class="filter-btn" id="filterNonAc" onclick="setAcFilter('nonac')">
+          <i class="fa-solid fa-wind"></i> Non-AC
+        </button>
+      </div>
+
+      <!-- Route Inputs -->
+      <div class="route-inputs">
+        <div class="input-wrapper">
+          <i class="fa-solid fa-circle-dot input-icon boarding"></i>
+          <input type="text" id="boardingInput" class="route-input" placeholder="Enter pickup location" autocomplete="off">
+        </div>
+        
+        <button class="swap-btn" onclick="swapLocations()" title="Reverse Route">
+          <i class="fa-solid fa-arrows-up-down"></i>
+        </button>
+
+        <div class="input-wrapper">
+          <i class="fa-solid fa-location-dot input-icon dropping"></i>
+          <input type="text" id="droppingInput" class="route-input" placeholder="Enter drop-off location" autocomplete="off">
+        </div>
+      </div>
+
+      <!-- Recent Searches: quick-fill chips built from routes this user has
+           actually searched before, stored locally. Nothing here is
+           fabricated - it only ever shows real past searches, and stays
+           empty until the person has searched at least once. -->
+      <div class="recent-searches" id="recentSearchesRow" style="display:none;"></div>
+
+      <!-- Book Button Bar -->
+      <div class="booking-actions">
+        <div class="seat-selector-bar">
+          <span>Seats:</span>
+          <button class="seat-btn" onclick="changeSeats(-1)">-</button>
+          <span id="seatCount" style="font-weight: bold;">1</span>
+          <button class="seat-btn" onclick="changeSeats(1)">+</button>
+        </div>
+        <button class="book-btn" onclick="openBookingConfirmation()">Book Ride</button>
+      </div>
+
+      <!-- Nav Buttons Row (My Booking & My Rides) -->
+      <div class="sketch-nav-bar">
+        <button class="sketch-nav-btn" id="btnMyBookingNav" onclick="openView('booking')">
+          <i class="fa-solid fa-ticket"></i> My Booking
+        </button>
+        <button class="sketch-nav-btn" id="btnMyRidesNav" onclick="openView('rides')">
+          <i class="fa-solid fa-car"></i> My Rides
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. MIDDLE CONTAINER -->
+    <div class="middle-container">
+      
+      <!-- MAP WRAPPER -->
+      <div id="mapWrapper">
+        <div id="map"></div>
+
+        <!-- Rides Overlay on Map -->
+        <div class="rides-overlay" id="ridesOverlayList">
+          <!-- Dynamically populated via JS according to AC/Non-AC filter -->
+        </div>
+      </div>
+
+      <!-- VIEW SCREEN: MY BOOKING -->
+      <div class="view-screen" id="myBookingScreen">
+        <div class="view-screen-header">
+          <div class="view-screen-title"><i class="fa-solid fa-ticket" style="color:var(--primary-peach);"></i> My Booking Details</div>
+          <button class="close-view-btn" onclick="showHomeView()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="bookingContent"></div>
+      </div>
+
+      <!-- VIEW SCREEN: MY RIDES -->
+      <div class="view-screen" id="myRidesScreen">
+        <div class="view-screen-header">
+          <div class="view-screen-title"><i class="fa-solid fa-car" style="color:var(--primary-peach);"></i> My Ride Vehicle Info</div>
+          <button class="close-view-btn" onclick="showHomeView()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="ridesContent"></div>
+      </div>
+
+    </div>
+
+    <!-- 3. BOTTOM NAVIGATION -->
+    <nav class="bottom-nav">
+      <a class="nav-item" id="navHelp" onclick="navigate('Help')">
+        <i class="fa-solid fa-circle-question"></i>
+        <span>Help</span>
+      </a>
+      <a class="nav-item active" id="navHome" onclick="showHomeView()">
+        <i class="fa-solid fa-house"></i>
+        <span>Home</span>
+      </a>
+      <a class="nav-item" id="navBooking" onclick="openView('booking')">
+        <i class="fa-solid fa-calendar-check"></i>
+        <span>My Booking</span>
+      </a>
+      <a class="nav-item" id="navSettings" onclick="openSettingsModal()">
+        <i class="fa-solid fa-sliders"></i>
+        <span>Settings</span>
+      </a>
+    </nav>
+
+    <!-- MODAL 1: BOOKING CONFIRMATION POPUP -->
+    <div class="modal-overlay" id="bookingModal">
+      <div class="modal-box">
+        <div class="modal-title">Confirm Booking</div>
+        <div class="modal-body">
+          <p style="margin-bottom:6px;"><strong>Route:</strong> <span id="modalRouteSummary"></span></p>
+          <p style="margin-bottom:6px;"><strong>Seats Selected:</strong> <span id="modalSeatSummary">1</span></p>
+          
+          <div class="gender-selector">
+            <div class="gender-field">
+              <label>Males:</label>
+              <input type="number" id="maleCountInput" min="0" placeholder="0" onchange="adjustGenderCounts('male')">
+            </div>
+            <div class="gender-field">
+              <label>Females:</label>
+              <input type="number" id="femaleCountInput" min="0" placeholder="0" onchange="adjustGenderCounts('female')">
+            </div>
+          </div>
+          <p style="font-size:0.7rem; color:var(--text-muted);">Specify passenger gender count matching selected seats.</p>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-btn cancel" onclick="closeBookingModal()">Cancel</button>
+          <button class="modal-btn confirm" onclick="confirmBooking()">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: POST A RIDE (DRIVER) - creates a real Ride document via
+         POST /api/rides so searches/bookings have an actual driver to find.
+         Requires the logged-in account to have registered as a driver. -->
+    <div class="modal-overlay" id="postRideModal">
+      <div class="modal-box">
+        <div class="modal-title">Post a Ride</div>
+        <div class="modal-body">
+          <p style="font-size:0.7rem; color:var(--text-muted); margin-bottom:10px;">
+            This creates a real ride other users can search for and book.
+          </p>
+          <div class="input-wrapper" style="margin-bottom:10px;">
+            <input type="text" id="postRideOrigin" class="route-input" placeholder="Starting point (e.g. Pune Station, Pune)">
+          </div>
+          <div class="input-wrapper" style="margin-bottom:10px;">
+            <input type="text" id="postRideDestination" class="route-input" placeholder="Destination (e.g. Bandra Kurla Complex, Mumbai)">
+          </div>
+          <div class="gender-selector">
+            <div class="gender-field">
+              <label>Seats:</label>
+              <input type="number" id="postRideSeats" min="1" max="8" placeholder="e.g. 3">
+            </div>
+            <div class="gender-field">
+              <label>Fare (₹):</label>
+              <input type="number" id="postRideFare" min="1" placeholder="e.g. 400">
+            </div>
+          </div>
+          <div class="input-wrapper" style="margin-top:10px;">
+            <input type="datetime-local" id="postRideDeparture" class="route-input">
+          </div>
+          <p id="postRideError" style="font-size:0.75rem; color:#c0392b; margin-top:8px;"></p>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-btn cancel" onclick="closePostRideModal()">Cancel</button>
+          <button class="modal-btn confirm" onclick="submitPostRide()">Post Ride</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- App Settings Modal: opened from the sidebar/bottom-nav "Settings"
+         button. Toggles here control app-wide behaviour (dark mode,
+         notifications, live location sharing) and persist to localStorage.
+         "Profile Settings" below hands off to the full profile page
+         (profile2.html) for account-level details like phone/email/SOS. -->
+    <div class="modal-overlay" id="settingsModal">
+      <div class="modal-box">
+        <div class="modal-title">App Settings</div>
+        <div class="modal-body">
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-title">Dark Mode</div>
+              <div class="settings-row-sub">Easier on the eyes at night</div>
+            </div>
+            <label class="app-toggle-switch">
+              <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode(this.checked)">
+              <span class="app-toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-title">Notifications</div>
+              <div class="settings-row-sub">Ride updates, chat &amp; SOS alerts</div>
+            </div>
+            <label class="app-toggle-switch">
+              <input type="checkbox" id="notifToggle" onchange="toggleNotifications(this.checked)">
+              <span class="app-toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-title">Live Location Sharing</div>
+              <div class="settings-row-sub">Lets co-riders track your ride live</div>
+            </div>
+            <label class="app-toggle-switch">
+              <input type="checkbox" id="locationToggle" onchange="toggleLocation(this.checked)">
+              <span class="app-toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="settings-divider"></div>
+
+          <!-- Downside settings: hands off to full Profile Settings page -->
+          <button class="settings-link-btn" onclick="window.location.href='profile2.html'">
+            <span><i class="fa-solid fa-user-gear"></i> Profile Settings</span>
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+          <button class="settings-link-btn" onclick="openPrivacySettingsInfo()">
+            <span><i class="fa-solid fa-lock"></i> Privacy Settings</span>
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+          <button class="settings-link-btn" onclick="window.location.href='help.html'">
+            <span><i class="fa-solid fa-circle-question"></i> Help &amp; Support</span>
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-btn confirm" style="width:100%;" onclick="closeSettingsModal()">Done</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- MODAL 2: CANCEL RIDE CONFIRMATION POPUP -->
+    <div class="modal-overlay" id="cancelModal">
+      <div class="modal-box">
+        <div class="modal-title">Cancel Ride?</div>
+        <div class="modal-body">
+          Are you sure you want to cancel your current booked ride? This action cannot be undone.
+        </div>
+        <div class="modal-actions">
+          <button class="modal-btn cancel" onclick="closeCancelModal()">Keep Ride</button>
+          <button class="modal-btn danger-confirm" onclick="processRideCancellation()">Cancel My Ride</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Leaflet Map JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script src="api-client.js"></script>
+  <script>
+    // Require login before this page does anything real - booking/creating
+    // rides needs a JWT from the Backend.
+    if (!localStorage.getItem('token')) {
+      window.location.href = 'login.html';
+    }
+
+    // State Management
+    let seats = 1;
+    let activeFilter = 'all'; // 'all', 'ac', 'nonac'
+    let activeBooking = null;
+    let currentOtp = Math.floor(1000 + Math.random() * 9000); // Initial active OTP
+
+    // Real rides come from the Backend now (GET /api/rides/search) - see
+    // searchAndRenderRides() below. This used to be a hardcoded array of
+    // fake drivers, which is why bookings always "succeeded" even with zero
+    // real drivers in the system.
+    let liveRides = [];       // raw response from apiSearchRides
+    let selectedRideId = null; // which real ride the user picked to book
+    let isSearching = false;
+    let lastPickupPoint = null;
+    let lastDropoffPoint = null;
+    let notifications = [];
+ 
+    const RIDE_HISTORY_KEY = 'rideHistory';
+
+    function getRideHistory() {
+      try {
+        const raw = localStorage.getItem(RIDE_HISTORY_KEY);
+        if (raw) {
+          return JSON.parse(raw);
+        }
+      } catch (error) {
+        console.warn('Unable to load ride history', error);
+      }
+      return [];
+    }
+
+    function saveRideHistory(history) {
+      try {
+        localStorage.setItem(RIDE_HISTORY_KEY, JSON.stringify(history));
+      } catch (error) {
+        console.warn('Unable to save ride history', error);
+      }
+    }
+
+    function addRideHistoryEntry(entry) {
+      const history = getRideHistory();
+      history.unshift(entry);
+      saveRideHistory(history);
+    }
+
+    function formatBookingDate(date) {
+      const options = {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: true
+      };
+      return new Intl.DateTimeFormat(navigator.language || 'en-US', options).format(date);
+    }
+
+    function createRideHistoryEntry(booking) {
+      return {
+        id: Date.now(),
+        from: booking.boarding,
+        to: booking.dropping,
+        price: booking.price,
+        coRiders: (booking.males || 0) + (booking.females || 0),
+        bookingDate: formatBookingDate(new Date()),
+        category: 'today',
+        isFrequent: booking.seatsBooked > 1,
+        month: 'current',
+        // No fabricated 4.9 fallback - a ride only has a rating once the
+        // user actually rates it after completion. 0 means "not rated yet".
+        rating: Number(booking.rating) || 0
+      };
+    }
+
+    function normalizeBooking(booking) {
+      const ride = booking?.ride || {};
+      const driver = ride.driver || {};
+      const vehicle = driver.vehicleDetails || ride.vehicleDetails || {};
+      return {
+        bookingId: booking._id,
+        rideId: ride._id,
+        status: booking.bookingStatus || booking.status,
+        driverName: driver.name || 'Driver',
+        car: [vehicle.make, vehicle.model].filter(Boolean).join(' ') || vehicle.model || 'Vehicle',
+        vehicleNo: vehicle.plateNumber || vehicle.licensePlate || '—',
+        isAC: Boolean(ride.preferences?.acAvailable),
+        price: Number(booking.totalFare ?? booking.seatPrice) || 0,
+        boarding: booking.pickupLocation?.address || ride.from?.address || 'Pickup location',
+        dropping: booking.dropLocation?.address || ride.to?.address || 'Drop-off location',
+        pickupLocation: booking.pickupLocation,
+        dropLocation: booking.dropLocation,
+        males: 0,
+        females: 0,
+        seatsBooked: Number(booking.seatsBooked) || 1,
+      };
+    }
+
+    function updateNotificationBadge(unreadCount) {
+      const badge = document.getElementById('notification-badge');
+      if (!badge) return;
+      badge.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
+      badge.style.display = unreadCount ? 'block' : 'none';
+    }
+
+    async function loadNotifications() {
+      try {
+        const result = await apiGetNotifications();
+        notifications = result.notifications || [];
+        updateNotificationBadge(result.unreadCount || 0);
+        alert(notifications.length
+          ? notifications.slice(0, 5).map((item) => `${item.title}: ${item.message}`).join('\n')
+          : 'No new notifications.');
+      } catch (error) {
+        alert(error.message || 'Notifications are unavailable.');
+      }
+    }
+
+    async function hydrateDashboard() {
+      try {
+        const [bookings, notificationResult] = await Promise.all([
+          apiGetMyBookings(),
+          apiGetNotifications(),
+        ]);
+        const active = (bookings || []).find((booking) =>
+          ['pending', 'accepted'].includes(booking.bookingStatus || booking.status)
+        );
+        activeBooking = active ? normalizeBooking(active) : null;
+        notifications = notificationResult.notifications || [];
+        updateNotificationBadge(notificationResult.unreadCount || 0);
+        if (document.getElementById('myBookingScreen').classList.contains('active')) {
+          renderMyBookingView();
+        }
+      } catch (error) {
+        console.warn('Could not hydrate dashboard data.', error);
+      }
+    }
+  
+    // CarpoolX is an India-only service (Aadhaar/PAN driver verification,
+    // Indian mobile numbers) so pricing is always shown in INR. This used
+    // to guess a currency from the browser's geolocation/locale and could
+    // show a ride's real rupee fare as USD/EUR/etc. to a user whose device
+    // reported a non-Indian locale - the amount never actually changed,
+    // only the label, which misrepresented the price. Currency is fixed;
+    // formatPrice() just does the ₹ number formatting.
+    function formatPrice(amount) {
+      try {
+        return new Intl.NumberFormat('en-IN', {
+          style: 'currency',
+          currency: 'INR',
+          maximumFractionDigits: 0
+        }).format(amount);
+      } catch (err) {
+        return `₹${amount}`;
+      }
+    }
+ 
+    function resolveCurrency() {
+      // No-op kept so the existing call site doesn't need to change.
+      // Currency is always INR for this app.
+    }
+ 
+    // Initialize Leaflet Map
+    const map = L.map('map', { zoomControl: false }).setView([18.5204, 73.8567], 10);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+    }).addTo(map);
+
+    // Custom Map Markers
+    const startIcon = L.divIcon({
+      html: '<i class="fa-solid fa-circle-dot" style="color:#4CAF50; font-size:20px;"></i>',
+      className: 'map-marker-icon'
+    });
+
+    const dropIcon = L.divIcon({
+      html: '<i class="fa-solid fa-location-dot" style="color:#FF7043; font-size:22px;"></i>',
+      className: 'map-marker-icon'
+    });
+
+    // Route markers/polyline are drawn dynamically from the real geocoded
+    // pickup/dropoff once a search actually returns something (see
+    // updateMapRoute(), called from searchAndRenderRides()) - this used to
+    // hardcode a permanent "Pune Station -> BKC Mumbai" marker pair and
+    // route line on the map regardless of what the user actually searched.
+    let routeLayer = null;
+
+    function updateMapRoute(pickup, dropoff) {
+      if (routeLayer) {
+        map.removeLayer(routeLayer);
+        routeLayer = null;
+      }
+      if (!pickup || !dropoff) return;
+
+      const startLatLng = [pickup.coordinates[1], pickup.coordinates[0]];
+      const dropLatLng = [dropoff.coordinates[1], dropoff.coordinates[0]];
+
+      routeLayer = L.layerGroup([
+        L.marker(startLatLng, { icon: startIcon }).bindPopup(`Boarding: ${pickup.address || 'Pickup'}`),
+        L.marker(dropLatLng, { icon: dropIcon }).bindPopup(`Dropping: ${dropoff.address || 'Drop-off'}`),
+        L.polyline([startLatLng, dropLatLng], { color: '#FF8A65', weight: 4, opacity: 0.85, dashArray: '6, 6' }),
+      ]).addTo(map);
+
+      map.fitBounds(L.latLngBounds([startLatLng, dropLatLng]), { padding: [40, 40] });
+    }
+
+    // Filter Functionality for AC / Non-AC
+    // NOTE: the real Ride/vehicleDetails data has no AC/Non-AC field yet
+    // (that's a schema addition, not the matching algorithm, so it's left
+    // out for now) - this filter is cosmetic until that field exists.
+    function setAcFilter(type) {
+      activeFilter = type;
+
+      document.getElementById('filterAll').classList.toggle('active', type === 'all');
+      document.getElementById('filterAc').classList.toggle('active', type === 'ac');
+      document.getElementById('filterNonAc').classList.toggle('active', type === 'nonac');
+
+      renderRidesOverlay();
+    }
+
+    // Geocodes the boarding/dropping text inputs, then calls the real
+    // Backend search (which runs the actual routeMatcher/fareCalculator
+    // algorithm) and renders whatever real rides come back. Empty result =
+    // empty list. No fake fallback.
+    // ---- Recent Searches -------------------------------------------------
+    // Quick-fill chips for routes this user has actually searched before.
+    // Stored locally per-browser; only ever populated by a real search that
+    // returned results, never pre-filled with sample data.
+    const RECENT_SEARCHES_KEY = 'recentSearches';
+    const MAX_RECENT_SEARCHES = 5;
+
+    function loadRecentSearches() {
+      try {
+        return JSON.parse(localStorage.getItem(RECENT_SEARCHES_KEY)) || [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveRecentSearch(boarding, dropping) {
+      let searches = loadRecentSearches().filter(
+        (s) => !(s.boarding.toLowerCase() === boarding.toLowerCase() && s.dropping.toLowerCase() === dropping.toLowerCase())
+      );
+      searches.unshift({ boarding, dropping });
+      searches = searches.slice(0, MAX_RECENT_SEARCHES);
+      try {
+        localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(searches));
+      } catch (e) {
+        console.warn('Unable to save recent search', e);
+      }
+      renderRecentSearches();
+    }
+
+    function renderRecentSearches() {
+      const row = document.getElementById('recentSearchesRow');
+      const searches = loadRecentSearches();
+      if (!searches.length) {
+        row.style.display = 'none';
+        row.innerHTML = '';
+        return;
+      }
+      row.style.display = 'flex';
+      row.innerHTML = searches.map((s, i) => `
+        <button class="recent-chip" onclick="applyRecentSearch(${i})">
+          <i class="fa-solid fa-clock-rotate-left"></i> ${s.boarding.split(',')[0]} → ${s.dropping.split(',')[0]}
+        </button>
+      `).join('');
+    }
+
+    function applyRecentSearch(index) {
+      const searches = loadRecentSearches();
+      const s = searches[index];
+      if (!s) return;
+      document.getElementById('boardingInput').value = s.boarding;
+      document.getElementById('droppingInput').value = s.dropping;
+      searchAndRenderRides();
+    }
+
+    async function searchAndRenderRides() {      const overlayContainer = document.getElementById('ridesOverlayList');
+      const boarding = document.getElementById('boardingInput').value.trim();
+      const dropping = document.getElementById('droppingInput').value.trim();
+
+      if (!boarding || !dropping) {
+        liveRides = [];
+        lastPickupPoint = null;
+        lastDropoffPoint = null;
+        updateMapRoute(null, null);
+        renderRidesOverlay();
+        return;
+      }
+
+      isSearching = true;
+      overlayContainer.innerHTML = `<div style="text-align:center; font-size:0.75rem; color:var(--text-muted); padding:10px;">Searching for real rides...</div>`;
+
+      try {
+        const pickup = await geocodeAddress(boarding);
+        const dropoff = await geocodeAddress(dropping);
+        const result = await apiSearchRides(pickup, dropoff);
+        liveRides = result.rides || [];
+        lastPickupPoint = pickup;
+        lastDropoffPoint = dropoff;
+        updateMapRoute(pickup, dropoff);
+        saveRecentSearch(boarding, dropping);
+      } catch (error) {
+        liveRides = [];
+        overlayContainer.innerHTML = `<div style="text-align:center; font-size:0.75rem; color:#c0392b; padding:10px;">${error.message}</div>`;
+        isSearching = false;
+        return;
+      }
+
+      isSearching = false;
+      selectedRideId = null;
+      renderRidesOverlay();
+    }
+
+    // Render Ride Cards in Overlay - now built from real Backend data
+    // (liveRides), tap a card to select it before booking. If there are no
+    // real drivers with a matching route, this correctly shows nothing.
+    function renderRidesOverlay() {
+      const overlayContainer = document.getElementById('ridesOverlayList');
+
+      if (isSearching) return; // searching message is already showing
+
+      if (liveRides.length === 0) {
+        overlayContainer.innerHTML = `
+          <div style="text-align:center; font-size:0.75rem; color:var(--text-muted); padding:10px;">
+            No real drivers available on this route right now.
+          </div>
+        `;
+        return;
+      }
+
+      overlayContainer.innerHTML = liveRides.map(entry => {
+        const ride = entry.ride;
+        const driver = ride.driver || {};
+        const isSelected = ride._id === selectedRideId;
+        return `
+        <div class="ride-card" style="${isSelected ? 'border:2px solid var(--primary-peach);' : ''}" onclick="selectRide('${ride._id}')">
+          <div class="driver-info">
+            <img src="${driver.profilePhoto || 'https://i.pravatar.cc/100'}" class="driver-avatar" alt="${driver.name || 'Driver'}">
+            <div class="driver-details">
+              <h4>${driver.name || 'Driver'} ★ ${driver.rating || 'New'}</h4>
+              <p>${(driver.vehicleDetails && driver.vehicleDetails.model) || 'Vehicle'} • ${ride.availableSeats} seat(s) left</p>
+            </div>
+          </div>
+          <div class="ride-card-right">
+            <div class="price-tag">${formatPrice(Math.round(entry.fareBreakdown.totalFareForPassenger))}</div>
+          </div>
+        </div>
+      `;
+      }).join('');
+    }
+
+    function selectRide(rideId) {
+      selectedRideId = rideId;
+      renderRidesOverlay();
+    }
+
+    searchAndRenderRides();
+    resolveCurrency();
+    hydrateDashboard();
+
+    // Re-run the real search whenever the route changes
+    document.getElementById('boardingInput').addEventListener('change', searchAndRenderRides);
+    document.getElementById('droppingInput').addEventListener('change', searchAndRenderRides);
+ 
+    // Swap Location inputs
+    function swapLocations() {
+      const boarding = document.getElementById('boardingInput');
+      const dropping = document.getElementById('droppingInput');
+      const temp = boarding.value;
+      boarding.value = dropping.value;
+      dropping.value = temp;
+    }
+
+    // Seat picker counter
+    function changeSeats(amount) {
+      seats = Math.max(1, Math.min(4, seats + amount));
+      document.getElementById('seatCount').innerText = seats;
+    }
+
+    // Adjust gender inputs
+    function adjustGenderCounts(changed) {
+      const maleInput = document.getElementById('maleCountInput');
+      const femaleInput = document.getElementById('femaleCountInput');
+      let m = parseInt(maleInput.value) || 0;
+      let f = parseInt(femaleInput.value) || 0;
+
+      if (changed === 'male') {
+        f = Math.max(0, seats - m);
+        femaleInput.value = f;
+      } else {
+        m = Math.max(0, seats - f);
+        maleInput.value = m;
+      }
+    }
+
+    // Sidebar
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('open');
+      document.getElementById('sidebarOverlay').classList.add('active');
+    }
+
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebarOverlay').classList.remove('active');
+    }
+
+    // Show Home View
+    function showHomeView() {
+      closeSidebar();
+      document.getElementById('mapWrapper').style.display = 'block';
+      document.getElementById('myBookingScreen').classList.remove('active');
+      document.getElementById('myRidesScreen').classList.remove('active');
+      
+      document.getElementById('btnMyBookingNav').classList.remove('active');
+      document.getElementById('btnMyRidesNav').classList.remove('active');
+      
+      document.getElementById('navHome').classList.add('active');
+      document.getElementById('navBooking').classList.remove('active');
+
+      setTimeout(() => { map.invalidateSize(); }, 100);
+    }
+
+    // Track on Google Maps Logic
+    function trackOnGoogleMaps() {
+      const boarding = document.getElementById('boardingInput').value.trim();
+      const dropping = document.getElementById('droppingInput').value.trim();
+
+      if (!boarding || !dropping) {
+        alert('Enter both a pickup and drop-off location first.');
+        return;
+      }
+
+      const origin = encodeURIComponent(boarding);
+      const destination = encodeURIComponent(dropping);
+
+      const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving`;
+      window.open(googleMapsUrl, '_blank');
+    }
+
+    // Open Screen Views
+    function openView(viewType) {
+      closeSidebar();
+      document.getElementById('mapWrapper').style.display = 'none';
+
+      const bookingScreen = document.getElementById('myBookingScreen');
+      const ridesScreen = document.getElementById('myRidesScreen');
+      const btnBooking = document.getElementById('btnMyBookingNav');
+      const btnRides = document.getElementById('btnMyRidesNav');
+      const navHome = document.getElementById('navHome');
+      const navBooking = document.getElementById('navBooking');
+
+      navHome.classList.remove('active');
+
+      if (viewType === 'booking') {
+        bookingScreen.classList.add('active');
+        ridesScreen.classList.remove('active');
+        btnBooking.classList.add('active');
+        btnRides.classList.remove('active');
+        navBooking.classList.add('active');
+        renderMyBookingView();
+      } else if (viewType === 'rides') {
+        ridesScreen.classList.add('active');
+        bookingScreen.classList.remove('active');
+        btnRides.classList.add('active');
+        btnBooking.classList.remove('active');
+        navBooking.classList.remove('active');
+        renderMyRidesView();
+      }
+    }
+
+    // Render Booking Tab
+    function renderMyBookingView() {
+      const container = document.getElementById('bookingContent');
+      if (!activeBooking) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fa-solid fa-ticket"></i>
+            <p>No active booking found.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="info-card">
+          <div class="info-row">
+            <span class="info-label"><i class="fa-solid fa-shield-halved"></i> Boarding OTP:</span>
+            <div class="otp-display-badge">
+              <span id="otpDisplayVal">🔑 OTP: ${currentOtp}</span>
+              <span class="otp-resend-btn" onclick="resendOtp()">Resend</span>
+            </div>
+          </div>
+          <div class="info-row">
+            <span class="info-label"><i class="fa-solid fa-car"></i> Vehicle Name/Model:</span>
+            <strong>${activeBooking.car}</strong>
+          </div>
+          <div class="info-row">
+            <span class="info-label"><i class="fa-solid fa-id-card"></i> Vehicle Number:</span>
+            <strong style="background:#FFF9C4; padding:2px 6px; border-radius:4px; border:1px solid #FFF59D;">${activeBooking.vehicleNo}</strong>
+          </div>
+          <div class="info-row">
+            <span class="info-label"><i class="fa-solid fa-snowflake"></i> AC / Non-AC:</span>
+            <span class="ac-type-badge ${activeBooking.isAC ? 'ac' : 'nonac'}">${activeBooking.isAC ? 'AC Ride' : 'Non-AC'}</span>
+          </div>
+
+          <p style="font-size:0.75rem; font-weight:700; margin-top:10px; color:var(--text-dark);">Co-passengers & Seat Layout:</p>
+          <div class="car-seats-grid">
+            <div class="seat-box">Driver (${activeBooking.driverName.split(' ')[0]})</div>
+            <div class="seat-box booked-by-user">You (${activeBooking.males > 0 ? 'Male' : 'Female'})</div>
+            <div class="seat-box female-seat">Occupied (Female)</div>
+            <div class="seat-box male-seat">Occupied (Male)</div>
+          </div>
+
+          <button class="cancel-ride-btn" onclick="openCancelModal()">Cancel Ride</button>
+        </div>
+      `;
+    }
+
+    // Render Rides Tab with Track Feature
+    function renderMyRidesView() {
+      const container = document.getElementById('ridesContent');
+      if (!activeBooking) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fa-solid fa-car-side"></i>
+            <p>No active ride found to track.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="info-card">
+          <div class="info-card-header">
+            <span style="font-weight:700; font-size:0.85rem;">${activeBooking.car}</span>
+            <span class="ac-type-badge ${activeBooking.isAC ? 'ac' : 'nonac'}">
+              ${activeBooking.isAC ? 'AC Ride' : 'Non-AC'}
+            </span>
+          </div>
+
+          <div class="info-row">
+            <span class="info-label"><i class="fa-solid fa-user-gear"></i> Driver Name:</span>
+            <strong>${activeBooking.driverName}</strong>
+          </div>
+
+          <div class="info-row">
+            <span class="info-label"><i class="fa-solid fa-route"></i> Route:</span>
+            <strong>${activeBooking.boarding} → ${activeBooking.dropping}</strong>
+          </div>
+
+          <div class="info-row">
+            <span class="info-label"><i class="fa-solid fa-money-bill-wave"></i> Fare:</span>
+            <strong>${formatPrice(activeBooking.price)}</strong>
+          </div>
+
+          <!-- TRACK ON GOOGLE MAPS BUTTON -->
+          <button class="track-google-btn" onclick="trackOnGoogleMaps()">
+            <i class="fa-solid fa-location-arrow"></i> Track Route on Google Maps
+          </button>
+        </div>
+      `;
+    }
+
+    // Resend OTP Functionality
+    function resendOtp() {
+      currentOtp = Math.floor(1000 + Math.random() * 9000);
+      const otpTextElement = document.getElementById('otpDisplayVal');
+      if (otpTextElement) {
+        otpTextElement.innerText = `🔑 OTP: ${currentOtp}`;
+      }
+      alert(`New OTP Generated & Sent to Passenger:\nOTP: ${currentOtp}`);
+    }
+
+    // Booking Modal Handling
+    function openBookingConfirmation() {
+      if (!selectedRideId) {
+        alert('Please tap a ride from the list to select a real driver before booking.');
+        return;
+      }
+
+      const boarding = document.getElementById('boardingInput').value;
+      const dropping = document.getElementById('droppingInput').value;
+      
+      document.getElementById('modalRouteSummary').innerText = `${boarding} → ${dropping}`;
+      document.getElementById('modalSeatSummary').innerText = seats;
+      document.getElementById('maleCountInput').value = seats;
+      document.getElementById('femaleCountInput').value = 0;
+      
+      document.getElementById('bookingModal').classList.add('active');
+    }
+
+    function closeBookingModal() {
+      document.getElementById('bookingModal').classList.remove('active');
+    }
+
+    async function confirmBooking() {
+      if (!selectedRideId || !lastPickupPoint || !lastDropoffPoint) {
+        alert('Please select a real ride first.');
+        closeBookingModal();
+        return;
+      }
+
+      const boarding = document.getElementById('boardingInput').value;
+      const dropping = document.getElementById('droppingInput').value;
+      const males = parseInt(document.getElementById('maleCountInput').value) || 0;
+      const females = parseInt(document.getElementById('femaleCountInput').value) || 0;
+
+      const confirmBtn = document.querySelector('#bookingModal .modal-btn.confirm');
+      if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.innerText = 'Booking...'; }
+
+      try {
+        const response = await apiBookRide(selectedRideId, {
+          pickupPoint: lastPickupPoint,
+          dropoffPoint: lastDropoffPoint,
+        });
+
+        const ride = response.rideDetails;
+        const driver = ride.driver || {};
+
+        activeBooking = {
+          bookingId: response.booking._id,
+          rideId: ride._id || response.booking.ride,
+          driverName: driver.name || 'Driver',
+          car: (driver.vehicleDetails && driver.vehicleDetails.model) || 'Vehicle',
+          vehicleNo: (driver.vehicleDetails && driver.vehicleDetails.plateNumber) || '—',
+          isAC: false, // no AC field in the real schema yet
+          price: response.booking.seatPrice,
+          boarding,
+          dropping,
+          males,
+          females,
+          seatsBooked: seats,
+        };
+
+        addRideHistoryEntry(createRideHistoryEntry(activeBooking));
+        closeBookingModal();
+        openView('booking');
+      } catch (error) {
+        // Real failure modes: seat taken by someone else between search and
+        // booking, ride cancelled, expired token, etc. - show it honestly
+        // instead of pretending the booking worked.
+        alert(error.message || 'Could not book this ride. It may no longer have a free seat.');
+        await searchAndRenderRides(); // refresh so stale/full rides disappear
+      } finally {
+        if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.innerText = 'Confirm'; }
+      }
+    }
+
+    // Post a Ride (Driver) Modal Handling
+    function openPostRideModal() {
+      closeSidebar();
+      document.getElementById('postRideError').innerText = '';
+      // Clear any values left over from a previous "Post a Ride" so a driver
+      // never accidentally reposts stale seats/fare/route from last time.
+      document.getElementById('postRideOrigin').value = '';
+      document.getElementById('postRideDestination').value = '';
+      document.getElementById('postRideSeats').value = '';
+      document.getElementById('postRideFare').value = '';
+      document.getElementById('postRideDeparture').value = '';
+      document.getElementById('postRideModal').classList.add('active');
+    }
+
+    function closePostRideModal() {
+      document.getElementById('postRideModal').classList.remove('active');
+    }
+
+    async function submitPostRide() {
+      const errorEl = document.getElementById('postRideError');
+      errorEl.innerText = '';
+
+      const originText = document.getElementById('postRideOrigin').value.trim();
+      const destText = document.getElementById('postRideDestination').value.trim();
+      const totalSeats = parseInt(document.getElementById('postRideSeats').value) || 0;
+      const baseFare = parseFloat(document.getElementById('postRideFare').value) || 0;
+      const departureTime = document.getElementById('postRideDeparture').value;
+
+      if (!originText || !destText || !departureTime || totalSeats < 1 || baseFare < 1) {
+        errorEl.innerText = 'Please fill in every field.';
+        return;
+      }
+
+      try {
+        const origin = await geocodeAddress(originText);
+        const destination = await geocodeAddress(destText);
+
+        // Simple 2-point route line between origin and destination. The
+        // real detour matching (isPointOnRoute in routeMatcher.js) is
+        // untouched - this just supplies real coordinates instead of the
+        // page's old hardcoded fake data.
+        const routeLineString = {
+          type: 'LineString',
+          coordinates: [origin.coordinates, destination.coordinates],
+        };
+
+        await apiCreateRide({
+          from: origin,
+          to: destination,
+          routeLine: routeLineString,
+          departureTime: new Date(departureTime).toISOString(),
+          totalSeats,
+          pricePerSeat: baseFare,
+        });
+
+        closePostRideModal();
+        alert('Ride posted! Passengers searching this route can now find and book it.');
+        searchAndRenderRides();
+      } catch (error) {
+        errorEl.innerText = error.message || 'Could not post this ride.';
+      }
+    }
+
+    // Cancel Ride Modal Handling
+    function openCancelModal() {
+      document.getElementById('cancelModal').classList.add('active');
+    }
+
+    function closeCancelModal() {
+      document.getElementById('cancelModal').classList.remove('active');
+    }
+
+    async function processRideCancellation() {
+      if (!activeBooking?.bookingId) {
+        activeBooking = null;
+        closeCancelModal();
+        renderMyBookingView();
+        return;
+      }
+      try {
+        await apiCancelBooking(activeBooking.bookingId);
+        activeBooking = null;
+        closeCancelModal();
+        renderMyBookingView();
+        alert('Booking cancelled successfully.');
+      } catch (error) {
+        alert(error.message || 'Could not cancel this booking.');
+      }
+    }
+
+    // Page navigation helper for sidebar and bottom nav
+    function navigate(screenName) {
+      closeSidebar();
+      const routeMap = {
+        'History': 'history.html',
+        'About': 'about.html',
+        'Settings': 'profile2.html',
+        'Profile': 'profile2.html',
+        'Login': 'login.html',
+        'Logout': 'login.html',
+        'Help': 'help.html',
+        'DriverDashboard': 'driver-dashboard.html'
+      };
+      const destination = routeMap[screenName] || 'index final 1.html';
+      window.location.href = destination;
+    }
+
+    // ---- App Settings modal --------------------------------------------
+    // Dark Mode / Notifications / Live Location toggles live here and are
+    // saved to localStorage so they persist across visits. "Profile
+    // Settings" below the toggles hands off to profile2.html, which owns
+    // account-level fields (name/phone/email/SOS) - this modal only owns
+    // app-wide behaviour toggles.
+    const APP_SETTINGS_KEY = 'appSettings';
+
+    function loadAppSettings() {
+      try {
+        return JSON.parse(localStorage.getItem(APP_SETTINGS_KEY)) || {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function saveAppSettings(settings) {
+      try {
+        localStorage.setItem(APP_SETTINGS_KEY, JSON.stringify(settings));
+      } catch (e) {
+        console.warn('Unable to save app settings', e);
+      }
+    }
+
+    function openSettingsModal() {
+      closeSidebar();
+      const settings = loadAppSettings();
+      document.getElementById('darkModeToggle').checked = !!settings.darkMode;
+      document.getElementById('notifToggle').checked = settings.notifications !== false;
+      document.getElementById('locationToggle').checked = settings.liveLocation !== false;
+      document.getElementById('settingsModal').classList.add('active');
+    }
+
+    function closeSettingsModal() {
+      document.getElementById('settingsModal').classList.remove('active');
+    }
+
+    function toggleDarkMode(isDark) {
+      document.body.classList.toggle('dark-mode', isDark);
+      const settings = loadAppSettings();
+      settings.darkMode = isDark;
+      saveAppSettings(settings);
+    }
+
+    function toggleNotifications(enabled) {
+      const settings = loadAppSettings();
+      settings.notifications = enabled;
+      saveAppSettings(settings);
+
+      if (enabled && 'Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    }
+
+    function toggleLocation(enabled) {
+      const settings = loadAppSettings();
+      settings.liveLocation = enabled;
+      saveAppSettings(settings);
+      if (!enabled) {
+        // Respect the toggle immediately: stop broadcasting position if a
+        // live-tracking session is currently running.
+        if (typeof stopLiveLocationSharing === 'function') {
+          stopLiveLocationSharing();
+        }
+      }
+    }
+
+    function openPrivacySettingsInfo() {
+      alert('Privacy Settings:\n\n- Your live location is only shared with your matched co-riders during an active ride.\n- Your phone number is masked from other users; only ride status is shared.\n- Ride history is private to your account.\n\nTo change your phone, email, or SOS contacts, use Profile Settings.');
+    }
+
+    // Restore saved dark-mode preference immediately on load so the page
+    // doesn't flash light mode first for users who chose dark mode.
+    (function applyStoredAppSettings() {
+      const settings = loadAppSettings();
+      if (settings.darkMode) {
+        document.body.classList.add('dark-mode');
+      }
+    })();
+
+    renderRecentSearches();
+  </script>
+</body>
+</html>

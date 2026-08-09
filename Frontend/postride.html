@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CarpoolX - Rate Your Ride</title>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg-color: #FFF8F5;
+      --card-bg: #FFFFFF;
+      --primary-peach: #FF8C66;
+      --soft-peach: #FFE5DC;
+      --hover-peach: #E57652;
+      --text-dark: #2C2C2C;
+      --text-muted: #7A7A7A;
+      --border-color: #F0E2DC;
+      --star-active: #FFB300;
+      --shadow: 0 8px 24px rgba(255, 140, 102, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    body {
+      background-color: #1a1a1a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 0px;
+    }
+
+    /* Full Viewport Screen Container */
+    .mobile-screen {
+      width: 100%;
+      max-width: 100%;
+      height: 100vh;
+      background-color: var(--bg-color);
+      border-radius: 0;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      box-shadow: none;
+      border: none;
+    }
+
+    /* Header */
+    .header {
+      background-color: var(--card-bg);
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      z-index: 10;
+    }
+
+    .brand-title {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--primary-peach);
+      letter-spacing: 0.5px;
+    }
+
+    .profile-btn {
+      height: 40px;
+      border-radius: 20px;
+      background-color: var(--soft-peach);
+      color: var(--primary-peach);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border: none;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 0 16px;
+      gap: 6px;
+      transition: transform 0.2s;
+    }
+
+    .profile-btn:hover {
+      transform: scale(1.03);
+    }
+
+    /* Main Content Body */
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 24px 24px 24px;
+      position: relative;
+    }
+
+    /* Views Switcher */
+    .view-page {
+      display: none;
+      flex-direction: column;
+      gap: 20px;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .view-page.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Cards */
+    .card {
+      background-color: var(--card-bg);
+      border-radius: 20px;
+      padding: 20px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow);
+    }
+
+    /* Thank-you view components */
+    .success-icon-wrapper {
+      text-align: center;
+      margin: 10px 0;
+    }
+
+    .success-icon-wrapper i {
+      font-size: 3.5rem;
+      color: var(--primary-peach);
+      background-color: var(--soft-peach);
+      padding: 20px;
+      border-radius: 50%;
+    }
+
+    .congrats-title {
+      font-size: 1.5rem;
+      color: var(--text-dark);
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .thankyou-msg {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    .pool-impact-banner {
+      background-color: var(--soft-peach);
+      padding: 14px;
+      border-radius: 14px;
+      display: flex;
+      justify-content: space-around;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .impact-item span {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .impact-item strong {
+      font-size: 0.95rem;
+      color: var(--primary-peach);
+    }
+
+    /* Primary Action Buttons */
+    .btn-primary {
+      background-color: var(--primary-peach);
+      color: #fff;
+      border: none;
+      padding: 16px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      width: 100%;
+      text-align: center;
+      transition: background-color 0.2s, transform 0.1s;
+      box-shadow: 0 4px 12px rgba(255, 140, 102, 0.3);
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary:disabled {
+      background-color: #E8C9BC;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      color: var(--primary-peach);
+      border: 2px solid var(--primary-peach);
+      padding: 14px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      width: 100%;
+      text-align: center;
+      transition: background-color 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--soft-peach);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn-row .btn-primary,
+    .btn-row .btn-secondary {
+      flex: 1;
+    }
+
+    /* Detailed Ride Page Styles */
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px dashed var(--border-color);
+      font-size: 0.9rem;
+      gap: 12px;
+    }
+
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+
+    .detail-label {
+      color: var(--text-muted);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .detail-value {
+      color: var(--text-dark);
+      font-weight: 600;
+      text-align: right;
+    }
+
+    /* Route Graphic */
+    .route-box {
+      background-color: var(--bg-color);
+      padding: 12px;
+      border-radius: 12px;
+      margin: 10px 0;
+    }
+
+    .route-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+
+    .route-divider {
+      border-left: 2px dotted var(--primary-peach);
+      height: 16px;
+      margin-left: 6px;
+    }
+
+    /* Star Rating */
+    .rating-section {
+      text-align: center;
+      margin-top: 5px;
+    }
+
+    .stars-container {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin: 10px 0;
+    }
+
+    .star {
+      font-size: 1.8rem;
+      color: #DDD;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .star.active {
+      color: var(--star-active);
+    }
+
+    /* Input Fields */
+    .suggestion-box {
+      width: 100%;
+      height: 70px;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 10px;
+      font-size: 0.85rem;
+      outline: none;
+      resize: none;
+      background-color: var(--bg-color);
+    }
+
+    .suggestion-box:focus {
+      border-color: var(--primary-peach);
+    }
+
+    .form-error {
+      font-size: 0.8rem;
+      color: #C0392B;
+      text-align: center;
+      min-height: 1em;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      padding: 10px 4px;
+      line-height: 1.5;
+    }
+
+    .loading-state {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      padding: 30px 4px;
+    }
+
+    /* Bottom Navigation Bar */
+    .bottom-nav {
+      background-color: var(--card-bg);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-around;
+      padding: 12px 0;
+      width: 100%;
+      z-index: 10;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: none;
+    }
+
+    .nav-item i {
+      font-size: 1.2rem;
+    }
+
+    .nav-item:hover, .nav-item.active {
+      color: var(--primary-peach);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="mobile-screen">
+
+    <!-- Header -->
+    <header class="header">
+      <span class="brand-title">CarpoolX</span>
+      <button class="profile-btn" id="headerAuthBtn" onclick="openLogin()">
+        Login / Sign Up
+      </button>
+    </header>
+
+    <!-- Content Container -->
+    <main class="content-area">
+
+      <!-- SCREEN 1 (DEFAULT): Rate The Ride -->
+      <section id="view-rating" class="view-page active">
+        <h3 style="color: var(--text-dark); font-size: 1.1rem;">Rate Your Ride</h3>
+
+        <div id="rideSummaryCard" class="card">
+          <div class="loading-state">Loading your latest completed ride…</div>
+        </div>
+
+        <!-- Rating & Feedback Section -->
+        <div class="card rating-section">
+          <span class="detail-label" style="font-weight: 700;">How was the ride?</span>
+          <div class="stars-container" id="star-rating">
+            <i class="fa-solid fa-star star" data-value="1"></i>
+            <i class="fa-solid fa-star star" data-value="2"></i>
+            <i class="fa-solid fa-star star" data-value="3"></i>
+            <i class="fa-solid fa-star star" data-value="4"></i>
+            <i class="fa-solid fa-star star" data-value="5"></i>
+          </div>
+
+          <textarea id="review-comment" class="suggestion-box" placeholder="Any suggestions or comments?"></textarea>
+        </div>
+
+        <p class="form-error" id="rating-error"></p>
+
+        <!-- Submit and Next Ride are two separate, independent actions -->
+        <div class="btn-row">
+          <button class="btn-secondary" id="nextRideBtn" onclick="goToHome()">
+            <i class="fa-solid fa-car"></i> Next Ride
+          </button>
+          <button class="btn-primary" id="submitRatingBtn" onclick="submitRating()">
+            <i class="fa-solid fa-star"></i> Submit
+          </button>
+        </div>
+      </section>
+
+      <!-- SCREEN 2: Thank-you confirmation, shown only after a rating is submitted -->
+      <section id="view-thankyou" class="view-page">
+        <div class="card">
+          <div class="success-icon-wrapper">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+          <h2 class="congrats-title">Thank You!</h2>
+          <p class="thankyou-msg" id="thankyou-message">Your feedback helps other riders and keeps CarpoolX drivers accountable.</p>
+
+          <div class="pool-impact-banner" id="thankyou-impact" style="display:none;">
+            <div class="impact-item">
+              <strong id="thankyou-rating-value">-</strong>
+              <span>Your Rating</span>
+            </div>
+            <div class="impact-item">
+              <strong id="thankyou-coriders-value">-</strong>
+              <span>Co-riders</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-primary" onclick="goToHome()">
+          <i class="fa-solid fa-house"></i> Continue to Dashboard
+        </button>
+      </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav">
+      <button class="nav-item" onclick="goToHome()">
+        <i class="fa-solid fa-house"></i>
+        <span>Home</span>
+      </button>
+      <button class="nav-item" onclick="openPage('help')">
+        <i class="fa-regular fa-circle-question"></i>
+        <span>Help</span>
+      </button>
+      <button class="nav-item" onclick="openPage('bookings')">
+        <i class="fa-solid fa-list-check"></i>
+        <span>My Booking</span>
+      </button>
+      <button class="nav-item" onclick="openPage('settings')">
+        <i class="fa-solid fa-gear"></i>
+        <span>Settings</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <script src="api-client.js"></script>
+  <script>
+    let selectedRating = 0;
+    let reviewContext = null; // { rideId, bookingId, targetUserId, driverName, coRiders }
+
+    function goToHome() {
+      window.location.href = 'index final 1.html';
+    }
+
+    function openLogin() {
+      window.location.href = 'login.html';
+    }
+
+    function openPage(pageName) {
+      const routeMap = {
+        help: 'help.html',
+        bookings: 'index final 1.html',
+        settings: 'profile2.html',
+        home: 'index final 1.html'
+      };
+      window.location.href = routeMap[pageName] || 'index final 1.html';
+    }
+
+    // Shows "Login / Sign Up" for a guest, or a real profile link once the
+    // person is actually signed in - so this page never claims someone
+    // needs to log in when they already have a session.
+    function renderHeaderAuthState() {
+      const btn = document.getElementById('headerAuthBtn');
+      if (localStorage.getItem('token')) {
+        btn.innerHTML = '<i class="fa-solid fa-user"></i> My Profile';
+        btn.onclick = () => { window.location.href = 'profile2.html'; };
+      } else {
+        btn.innerHTML = 'Login / Sign Up';
+        btn.onclick = openLogin;
+      }
+    }
+
+    // --- Star Rating -------------------------------------------------------
+    const stars = document.querySelectorAll('#star-rating .star');
+    stars.forEach(star => {
+      star.addEventListener('click', () => {
+        selectedRating = Number(star.getAttribute('data-value'));
+        updateStars(selectedRating);
+      });
+    });
+
+    function updateStars(rating) {
+      stars.forEach(star => {
+        star.classList.toggle('active', Number(star.getAttribute('data-value')) <= rating);
+      });
+    }
+
+    // --- Dynamic ride summary ----------------------------------------------
+    function formatDate(value) {
+      if (!value) return null;
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return null;
+      return date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    }
+
+    function formatFare(amount) {
+      const value = Number(amount);
+      if (!Number.isFinite(value)) return null;
+      return `₹${value.toFixed(2)}`;
+    }
+
+    function formatVehicle(vehicleDetails) {
+      if (!vehicleDetails) return null;
+      const nameParts = [vehicleDetails.make, vehicleDetails.model].filter(Boolean);
+      const plate = vehicleDetails.plateNumber || vehicleDetails.registrationNumber || vehicleDetails.licensePlate;
+      const name = nameParts.join(' ');
+      if (name && plate) return `${name} (${plate})`;
+      return name || plate || null;
+    }
+
+    function renderRow(label, value) {
+      if (!value) return '';
+      return `
+        <div class="detail-row">
+          <span class="detail-label">${label}</span>
+          <span class="detail-value">${value}</span>
+        </div>`;
+    }
+
+    function renderRideSummary(booking) {
+      const container = document.getElementById('rideSummaryCard');
+      const ride = booking?.ride || {};
+      const driver = ride.driver || {};
+      const fromAddress = booking?.pickupLocation?.address || ride.from?.address;
+      const toAddress = booking?.dropLocation?.address || ride.to?.address;
+
+      let routeHtml = '';
+      if (fromAddress || toAddress) {
+        routeHtml = `
+          <div class="route-box">
+            <div class="route-item"><i class="fa-solid fa-circle-dot" style="color: var(--primary-peach);"></i><span>${fromAddress || 'Pickup point'}</span></div>
+            <div class="route-divider"></div>
+            <div class="route-item"><i class="fa-solid fa-location-dot" style="color: var(--primary-peach);"></i><span>${toAddress || 'Drop-off point'}</span></div>
+          </div>`;
+      }
+
+      const rows = [
+        renderRow('<i class="fa-regular fa-calendar"></i> Date', formatDate(booking?.bookedAt || ride.departureTime)),
+        renderRow('Driver Name', driver.name),
+        renderRow('Car Name / No.', formatVehicle(driver.vehicleDetails)),
+        renderRow('Fare Paid', formatFare(booking?.totalFare ?? booking?.seatPrice)),
+        renderRow('OTP', booking?.rideOTP),
+      ].join('');
+
+      container.innerHTML = `
+        <h4 style="font-size: 0.95rem; color: var(--text-dark); margin-bottom: 6px;">Ride Summary</h4>
+        ${routeHtml}
+        ${rows}
+      `;
+    }
+
+    function renderEmptyState(message) {
+      document.getElementById('rideSummaryCard').innerHTML = `<div class="empty-state">${message}</div>`;
+      document.getElementById('submitRatingBtn').disabled = true;
+    }
+
+    // Loads the ride to rate. Preferred source: rideId/bookingId/targetUserId
+    // passed in the URL (e.g. a "Rate this ride" link from history.html).
+    // Fallback: the most recently completed booking for this passenger, so
+    // the page still works if it was opened without those params - never
+    // fabricated placeholder data either way.
+    async function loadReviewContext() {
+      const params = new URLSearchParams(window.location.search);
+      const rideIdParam = params.get('rideId');
+      const bookingIdParam = params.get('bookingId');
+      const targetUserIdParam = params.get('targetUserId');
+
+      if (!localStorage.getItem('token')) {
+        renderEmptyState('Log in to rate your completed rides.');
+        return;
+      }
+
+      try {
+        let booking = null;
+
+        if (bookingIdParam && typeof apiGetBookingById === 'function') {
+          booking = await apiGetBookingById(bookingIdParam);
+        } else if (typeof apiGetMyBookings === 'function') {
+          const bookings = await apiGetMyBookings();
+          const completed = (Array.isArray(bookings) ? bookings : [])
+            .filter((item) => (item.status || item.bookingStatus) === 'completed')
+            .sort((a, b) => new Date(b.bookedAt || b.createdAt || 0) - new Date(a.bookedAt || a.createdAt || 0));
+          booking = completed[0] || null;
+        }
+
+        if (!booking) {
+          renderEmptyState('No completed ride is available to rate yet. Once a ride finishes, it will show up here.');
+          return;
+        }
+
+        const rideId = rideIdParam || booking.ride?._id || booking.ride;
+        const targetUserId = targetUserIdParam || booking.ride?.driver?._id || booking.driver;
+        const coRiders = Array.isArray(booking.ride?.passengers) ? booking.ride.passengers.length : null;
+
+        reviewContext = {
+          rideId,
+          bookingId: booking._id,
+          targetUserId,
+          driverName: booking.ride?.driver?.name,
+          coRiders,
+        };
+
+        renderRideSummary(booking);
+
+        if (!rideId || !targetUserId) {
+          renderEmptyState('This ride is missing details needed to submit a rating.');
+        }
+      } catch (error) {
+        renderEmptyState(error.message || 'Could not load your ride details.');
+      }
+    }
+
+    // --- Submit rating -------------------------------------------------------
+    async function submitRating() {
+      const errorEl = document.getElementById('rating-error');
+      errorEl.innerText = '';
+
+      if (!selectedRating) {
+        errorEl.innerText = 'Please select a star rating before submitting.';
+        return;
+      }
+      if (!reviewContext || !reviewContext.rideId || !reviewContext.targetUserId) {
+        errorEl.innerText = 'Open this page from a completed ride to submit feedback.';
+        return;
+      }
+
+      const submitBtn = document.getElementById('submitRatingBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'Submitting…';
+
+      try {
+        await apiSubmitReview({
+          rideId: reviewContext.rideId,
+          bookingId: reviewContext.bookingId,
+          targetUserId: reviewContext.targetUserId,
+          rating: selectedRating,
+          comment: document.getElementById('review-comment')?.value.trim(),
+        });
+        showThankYou();
+      } catch (error) {
+        errorEl.innerText = error.message || 'Could not submit your review.';
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fa-solid fa-star"></i> Submit';
+      }
+    }
+
+    function showThankYou() {
+      document.getElementById('thankyou-message').innerText =
+        reviewContext?.driverName
+          ? `Your feedback for ${reviewContext.driverName} has been submitted. Thanks for helping keep CarpoolX safe and reliable.`
+          : 'Your feedback has been submitted. Thanks for helping keep CarpoolX safe and reliable.';
+
+      if (selectedRating || Number.isFinite(reviewContext?.coRiders)) {
+        document.getElementById('thankyou-impact').style.display = 'flex';
+        document.getElementById('thankyou-rating-value').innerText = selectedRating ? `${selectedRating} / 5` : '-';
+        document.getElementById('thankyou-coriders-value').innerText =
+          Number.isFinite(reviewContext?.coRiders) ? reviewContext.coRiders : '-';
+      }
+
+      document.getElementById('view-rating').classList.remove('active');
+      document.getElementById('view-thankyou').classList.add('active');
+    }
+
+    renderHeaderAuthState();
+    loadReviewContext();
+  </script>
+</body>
+</html>

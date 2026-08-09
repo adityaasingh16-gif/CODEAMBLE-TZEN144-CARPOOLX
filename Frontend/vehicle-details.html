@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vehicle & License Details - CarpoolX</title>
+<link rel="stylesheet" href="login.css">
+<style>
+  .card {
+    max-width: 520px;
+    margin: 40px auto;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0px;
+    box-shadow: var(--shadow);
+  }
+  @media (max-width: 560px) {
+    body { padding: 0px; margin: 0px; }
+    .card {
+      margin: 0px;
+      border-radius: 0px;
+      border: none;
+      box-shadow: none;
+      min-height: 100vh;
+      padding: 0px;
+    }
+  }
+  h2 { margin-top: 0; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 5px; }
+  .field input, .field select {
+    width: 100%; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--border); background: #fff; font-size: 0.9rem;
+  }
+  .row { display: flex; gap: 12px; }
+  .row .field { flex: 1; }
+  .status-badge {
+    display: inline-block; padding: 4px 12px; border-radius: 999px;
+    font-size: 0.75rem; font-weight: 600; margin-bottom: 16px;
+  }
+  .status-not_submitted { background: #eee; color: #666; }
+  .status-pending { background: #fff3cd; color: #8a6d1a; }
+  .status-approved { background: #d4edda; color: #1e7e34; }
+  .status-rejected { background: #f8d7da; color: #a12a2a; }
+  .note-box {
+    background: #fff3f0; border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 14px; font-size: 0.8rem; margin-bottom: 16px; color: var(--text);
+  }
+  button {
+    width: 100%; padding: 12px; border: none; border-radius: 10px;
+    background: var(--accent-strong); color: #fff; font-weight: 600;
+    cursor: pointer; font-size: 0.95rem;
+  }
+  button:disabled { opacity: 0.6; cursor: default; }
+  .msg { font-size: 0.85rem; margin-top: 10px; text-align: center; }
+  .msg.error { color: #a12a2a; }
+  .msg.success { color: #1e7e34; }
+  .back-link { display:inline-block; margin-bottom: 16px; font-size: 0.85rem; color: var(--muted); text-decoration:none; }
+</style>
+</head>
+<body>
+<div class="card">
+  <a class="back-link" href="index final 1.html">&larr; Back to dashboard</a>
+  <h2>Vehicle &amp; License Details</h2>
+  <div id="statusBadge"></div>
+  <div id="rejectionNote" style="display:none;" class="note-box"></div>
+
+  <form id="vehicleForm">
+    <div class="row">
+      <div class="field"><label>Make</label><input type="text" id="vMake" placeholder="e.g. Maruti Suzuki"></div>
+      <div class="field"><label>Model</label><input type="text" id="vModel" placeholder="e.g. Swift"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Color</label><input type="text" id="vColor" placeholder="e.g. White"></div>
+      <div class="field"><label>Seats (capacity)</label><input type="number" id="vCapacity" min="1" max="8" value="4"></div>
+    </div>
+    <div class="field"><label>Plate Number</label><input type="text" id="vPlate" placeholder="e.g. MH12AB1234"></div>
+    <div class="field"><label>Registration (RC) Number</label><input type="text" id="vRegNumber" placeholder="RC number"></div>
+    <div class="field">
+      <label>Fuel Type</label>
+      <select id="vFuelType">
+        <option value="">Select</option>
+        <option value="Petrol">Petrol</option>
+        <option value="Diesel">Diesel</option>
+        <option value="CNG">CNG</option>
+        <option value="Electric">Electric</option>
+      </select>
+    </div>
+    <div class="row">
+      <div class="field"><label>Driving License Number</label><input type="text" id="dlNumber" placeholder="License number"></div>
+      <div class="field"><label>License Expiry</label><input type="date" id="dlExpiry"></div>
+    </div>
+    <button type="submit" id="submitBtn">Save & Submit for Verification</button>
+    <p class="msg" id="formMsg"></p>
+  </form>
+</div>
+
+<script src="api-client.js"></script>
+<script>
+  if (!localStorage.getItem('token')) {
+    window.location.href = 'login.html';
+  }
+
+  const STATUS_LABELS = {
+    not_submitted: 'Not submitted yet',
+    pending: 'Pending review',
+    approved: 'Verified',
+    rejected: 'Rejected — edit and resubmit',
+  };
+
+  async function loadProfile() {
+    try {
+      const user = await apiGetProfile();
+
+      if (!user.isDriver) {
+        document.querySelector('.card').innerHTML =
+          '<p>This page is for driver accounts. Your account is registered as a passenger.</p>' +
+          '<a class="back-link" href="index final 1.html">&larr; Back to dashboard</a>';
+        return;
+      }
+
+      const status = user.verificationStatus || 'not_submitted';
+      const badge = document.getElementById('statusBadge');
+      badge.innerHTML = `<span class="status-badge status-${status}">${STATUS_LABELS[status] || status}</span>`;
+
+      if (status === 'rejected' && user.verificationNote) {
+        const noteBox = document.getElementById('rejectionNote');
+        noteBox.style.display = 'block';
+        noteBox.innerText = `Admin note: ${user.verificationNote}`;
+      }
+
+      const v = user.vehicleDetails || {};
+      document.getElementById('vMake').value = v.make || '';
+      document.getElementById('vModel').value = v.model || '';
+      document.getElementById('vColor').value = v.color || '';
+      document.getElementById('vCapacity').value = v.capacity || 4;
+      document.getElementById('vPlate').value = v.plateNumber || '';
+      document.getElementById('vRegNumber').value = v.registrationNumber || '';
+      document.getElementById('vFuelType').value = v.fuelType || '';
+
+      const dl = user.drivingLicense || {};
+      document.getElementById('dlNumber').value = dl.number || '';
+      if (dl.expiryDate) {
+        document.getElementById('dlExpiry').value = new Date(dl.expiryDate).toISOString().slice(0, 10);
+      }
+    } catch (error) {
+      document.getElementById('formMsg').innerText = error.message;
+      document.getElementById('formMsg').className = 'msg error';
+    }
+  }
+
+  document.getElementById('vehicleForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const submitBtn = document.getElementById('submitBtn');
+    const msg = document.getElementById('formMsg');
+    submitBtn.disabled = true;
+    submitBtn.innerText = 'Saving...';
+    msg.innerText = '';
+
+    try {
+      await apiUpdateProfile({
+        vehicleDetails: {
+          make: document.getElementById('vMake').value.trim(),
+          model: document.getElementById('vModel').value.trim(),
+          color: document.getElementById('vColor').value.trim(),
+          capacity: parseInt(document.getElementById('vCapacity').value) || 4,
+          plateNumber: document.getElementById('vPlate').value.trim(),
+          registrationNumber: document.getElementById('vRegNumber').value.trim(),
+          fuelType: document.getElementById('vFuelType').value,
+        },
+        drivingLicense: {
+          number: document.getElementById('dlNumber').value.trim(),
+          expiryDate: document.getElementById('dlExpiry').value || undefined,
+        },
+      });
+      msg.innerText = 'Saved. Submitted for verification — an admin will review it.';
+      msg.className = 'msg success';
+      await loadProfile();
+    } catch (error) {
+      msg.innerText = error.message || 'Could not save details.';
+      msg.className = 'msg error';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerText = 'Save & Submit for Verification';
+    }
+  });
+
+  loadProfile();
+</script>
+</body>
+</html>
